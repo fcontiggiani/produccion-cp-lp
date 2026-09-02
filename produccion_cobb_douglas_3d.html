@@ -1,0 +1,1789 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Función de producción: representación en corto y largo plazo</title>
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']]
+    },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.min.js"></script>
+<style>
+  :root[data-theme="light"] {
+    --bg: #f7f6f3;
+    --panel-bg: #ffffff;
+    --panel-border: #dcd8ce;
+    --text-main: #262420;
+    --text-muted: #6b665c;
+    --text-faint: #9d978a;
+    --accent-1: #1f6f78;   /* petróleo — superficie / K */
+    --accent-2: #b5652f;   /* terracota tenue — L / PMg */
+    --accent-3: #6a5a9c;   /* violeta apagado — PMe / tercer elemento */
+    --accent-4: #8a9a3f;   /* verde oliva — referencia / rendimientos */
+    --grid-line: #e4e1d8;
+    --axis-line: #b8b3a5;
+    --danger: #a13d3d;
+    --shadow: 0 1px 2px rgba(38,36,32,0.06), 0 4px 14px rgba(38,36,32,0.05);
+    --canvas-bg: #fdfcfa;
+    --stage1: rgba(138,154,63,0.10);
+    --stage2: rgba(31,111,120,0.08);
+    --stage3: rgba(161,61,61,0.08);
+  }
+  :root[data-theme="dark"] {
+    --bg: #1a1a17;
+    --panel-bg: #211f1b;
+    --panel-border: #3a372f;
+    --text-main: #ece8de;
+    --text-muted: #a8a294;
+    --text-faint: #746f61;
+    --accent-1: #4fb2bd;
+    --accent-2: #e08a4f;
+    --accent-3: #9b8ad1;
+    --accent-4: #b6c96a;
+    --grid-line: #322f28;
+    --axis-line: #524f44;
+    --danger: #d97a7a;
+    --shadow: 0 1px 2px rgba(0,0,0,0.3), 0 4px 14px rgba(0,0,0,0.25);
+    --canvas-bg: #1e1c18;
+    --stage1: rgba(182,201,106,0.08);
+    --stage2: rgba(79,178,189,0.07);
+    --stage3: rgba(217,122,122,0.09);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
+    background: var(--bg);
+    color: var(--text-main);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .layout {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px 20px 48px;
+  }
+
+  header.top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--panel-border);
+    margin-bottom: 18px;
+  }
+  header.top h1 {
+    font-size: 1.28rem;
+    font-weight: 600;
+    margin: 0 0 4px;
+    letter-spacing: 0.01em;
+  }
+  header.top p.sub {
+    margin: 0;
+    font-size: 0.86rem;
+    color: var(--text-muted);
+    max-width: 62ch;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  #theme-toggle {
+    border: 1px solid var(--panel-border);
+    background: var(--panel-bg);
+    color: var(--text-main);
+    border-radius: 7px;
+    padding: 7px 12px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    white-space: nowrap;
+  }
+  #theme-toggle:hover { border-color: var(--text-faint); }
+
+  .global-params {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 14px;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    margin-bottom: 20px;
+    box-shadow: var(--shadow);
+  }
+
+  .param {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+  .param label {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    display: flex;
+    justify-content: space-between;
+  }
+  .param label .val {
+    color: var(--text-main);
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+  }
+  .param input[type="range"] {
+    width: 100%;
+    accent-color: var(--accent-1);
+  }
+  .param .rts-badge {
+    align-self: flex-start;
+    font-size: 0.72rem;
+    padding: 2px 8px;
+    border-radius: 20px;
+    margin-top: 2px;
+    font-weight: 600;
+  }
+
+  .panels {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+
+  .panel {
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 12px;
+    padding: 18px 20px 20px;
+    box-shadow: var(--shadow);
+  }
+  .panel h2 {
+    font-size: 1.02rem;
+    margin: 0 0 3px;
+    font-weight: 600;
+  }
+  .panel .desc {
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    margin: 0 0 14px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    max-width: 78ch;
+  }
+
+  .panel-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 260px;
+    gap: 18px;
+  }
+  @media (max-width: 880px) {
+    .panel-body { grid-template-columns: 1fr; }
+  }
+
+  .canvas-wrap {
+    position: relative;
+    border: 1px solid var(--grid-line);
+    border-radius: 8px;
+    background: var(--canvas-bg);
+    overflow: hidden;
+    touch-action: none;
+  }
+  canvas { display: block; width: 100%; height: auto; cursor: grab; }
+  canvas.dragging { cursor: grabbing; }
+
+  .side-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  .ctrl-group {
+    border: 1px solid var(--panel-border);
+    border-radius: 8px;
+    padding: 10px 12px;
+  }
+  .ctrl-group .g-title {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--text-faint);
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+  .ctrl-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 0.82rem;
+    padding: 3px 0;
+  }
+  .ctrl-row input[type="checkbox"] { accent-color: var(--accent-1); }
+  .ctrl-row input[type="range"] { width: 100%; accent-color: var(--accent-1); }
+  .ctrl-row label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+
+  .mode-switch {
+    display: flex;
+    gap: 6px;
+  }
+  .mode-switch button {
+    flex: 1;
+    border: 1px solid var(--panel-border);
+    background: var(--bg);
+    color: var(--text-muted);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-size: 0.76rem;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .mode-switch button.active {
+    background: var(--accent-1);
+    color: #fff;
+    border-color: var(--accent-1);
+    font-weight: 600;
+  }
+
+  .num-panel {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 0.82rem;
+  }
+  .num-panel table { width: 100%; border-collapse: collapse; }
+  .num-panel td { padding: 3px 0; }
+  .num-panel td.k { color: var(--text-muted); }
+  .num-panel td.v { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .num-panel tr.hl td { color: var(--accent-1); }
+
+  .legend-dot {
+    display: inline-block;
+    width: 9px; height: 9px;
+    border-radius: 2px;
+    margin-right: 6px;
+  }
+
+  .eqbox {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    border-top: 1px dashed var(--panel-border);
+    margin-top: 10px;
+    padding-top: 10px;
+  }
+
+  footer.credits {
+    margin-top: 26px;
+    font-size: 0.76rem;
+    color: var(--text-faint);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    border-top: 1px solid var(--panel-border);
+    padding-top: 12px;
+  }
+
+  .stage-legend {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    font-size: 0.74rem;
+    color: var(--text-muted);
+    margin-top: 8px;
+  }
+  .stage-chip { display: flex; align-items: center; gap: 5px; }
+  .stage-swatch { width: 12px; height: 12px; border-radius: 3px; }
+</style>
+</head>
+<body>
+<div class="layout">
+
+  <header class="top">
+    <div>
+      <h1>Función de producción: representación en corto y largo plazo</h1>
+      <p class="sub">Superficie de producción en $\mathbb{R}^3$, mapa de isocuantas con análisis de rendimientos a escala a lo largo de un rayo $K/L$ constante, y función de producción de corto plazo con productos marginal y medio del trabajo.</p>
+    </div>
+    <button id="theme-toggle" type="button">Tema oscuro</button>
+  </header>
+
+  <div class="global-params">
+    <div class="param" style="grid-column: 1 / -1;">
+      <label>Forma funcional</label>
+      <div class="mode-switch" id="functional-form-switch">
+        <button type="button" class="active" data-form="cobb-douglas">Cobb-Douglas</button>
+        <button type="button" data-form="leontief">Complementarios perfectos</button>
+        <button type="button" data-form="perfect-subs">Sustitutos perfectos</button>
+        <button type="button" data-form="ces">CES</button>
+      </div>
+      <p id="form-formula-note" style="font-size:0.72rem;color:var(--text-muted);margin:6px 0 0;"></p>
+    </div>
+    <div class="param" id="param-A">
+      <label>Escala $A$ <span class="val" id="val-A">1.00</span></label>
+      <input type="range" id="in-A" min="0.2" max="4" step="0.01" value="1">
+    </div>
+    <div class="param" id="param-alpha">
+      <label id="label-alpha"><span id="label-alpha-text">Elasticidad $\alpha$ (capital)</span> <span class="val" id="val-alpha">0.50</span></label>
+      <input type="range" id="in-alpha" min="0.05" max="1.2" step="0.01" value="0.5">
+    </div>
+    <div class="param" id="param-beta">
+      <label id="label-beta"><span id="label-beta-text">Elasticidad $\beta$ (trabajo)</span> <span class="val" id="val-beta">0.50</span></label>
+      <input type="range" id="in-beta" min="0.05" max="1.2" step="0.01" value="0.5">
+    </div>
+    <div class="param" id="param-ces-rho">
+      <label>Parámetro $\rho$ (CES) <span class="val" id="val-ces-rho">0.50</span></label>
+      <input type="range" id="in-ces-rho" min="-5" max="0.95" step="0.05" value="0.5">
+      <span style="font-size:0.72rem;color:var(--text-muted);" id="ces-sigma-detail">$\sigma = 1/(1-\rho) = 2.00$</span>
+    </div>
+    <div class="param" id="param-rts">
+      <span id="rts-badge" class="rts-badge">Rendimientos constantes a escala</span>
+      <span style="font-size:0.75rem;color:var(--text-muted);" id="rts-detail">$\alpha+\beta = 1.00$</span>
+    </div>
+  </div>
+
+  <div class="panels">
+    <!-- PANEL 1: Superficie 3D -->
+    <section class="panel" id="panel-3d">
+      <h2>Superficie de producción <span id="panel3d-formula">$Q = A\,K^{\alpha}L^{\beta}$</span></h2>
+      <p class="desc">Malla tridimensional renderizada mediante proyección isométrica manual sobre <em>Canvas 2D</em> (ordenamiento de polígonos por profundidad). Arrastre para rotar libremente en 360°, use la rueda del mouse o el pellizco táctil para acercar/alejar.</p>
+      <div class="panel-body">
+        <div class="canvas-wrap">
+          <canvas id="cv-3d" width="900" height="560"></canvas>
+        </div>
+        <div class="side-controls">
+          <div class="ctrl-group">
+            <div class="g-title">Cámara</div>
+            <div class="ctrl-row">
+              <label style="width:100%;">Rotación
+                <input type="range" id="rot3d" min="0" max="360" step="1" value="35">
+              </label>
+            </div>
+            <div class="ctrl-row">
+              <label style="width:100%;">Inclinación
+                <input type="range" id="tilt3d" min="10" max="85" step="1" value="32">
+              </label>
+            </div>
+            <div class="ctrl-row">
+              <label style="width:100%;">Zoom
+                <input type="range" id="zoom3d" min="0.5" max="2.6" step="0.02" value="1">
+              </label>
+            </div>
+            <div class="ctrl-row">
+              <button type="button" id="reset3d" style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--panel-border);background:var(--bg);color:var(--text-main);cursor:pointer;font-family:inherit;font-size:0.78rem;">Restablecer vista</button>
+            </div>
+          </div>
+          <div class="ctrl-group">
+            <div class="g-title">Elementos visibles</div>
+            <div class="ctrl-row"><label><input type="checkbox" id="show-isolines3d" checked> Isocuantas proyectadas en la base</label></div>
+            <div class="ctrl-row"><label><input type="checkbox" id="show-axes3d" checked> Ejes y grilla</label></div>
+          </div>
+          <div class="ctrl-group num-panel" id="num3d">
+            <div class="g-title">Rango mostrado</div>
+            <table>
+              <tr><td class="k">$K \in [0, \bar K]$</td><td class="v" id="k3d-range">0 – 14</td></tr>
+              <tr><td class="k">$L \in [0, \bar L]$</td><td class="v" id="l3d-range">0 – 14</td></tr>
+              <tr><td class="k">$Q_{\max}$ en el dominio</td><td class="v" id="q3d-max">–</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PANEL 2: Isocuantas y rendimientos a escala -->
+    <section class="panel" id="panel-isoq">
+      <h2>Mapa de isocuantas y rendimientos a escala sobre un rayo $K/L$ constante</h2>
+      <p class="desc">El análisis de rendimientos a escala exige mantener fija la <em>proporción</em> de factores $K/L$ y variar su cantidad conjunta; por ello ambos modos evalúan la función sobre el rayo indicado, no sobre puntos arbitrarios del plano.</p>
+      <div class="panel-body">
+        <div class="canvas-wrap">
+          <canvas id="cv-isoq" width="900" height="520"></canvas>
+        </div>
+        <div class="side-controls">
+          <div class="ctrl-group">
+            <div class="g-title">Forma funcional y parámetros</div>
+            <div class="mode-switch" id="functional-form-switch-isoq2">
+              <button type="button" class="active" data-form="cobb-douglas">Cobb-Douglas</button>
+              <button type="button" data-form="leontief">Compl. perfectos</button>
+              <button type="button" data-form="perfect-subs">Sust. perfectos</button>
+              <button type="button" data-form="ces">CES</button>
+            </div>
+            <div class="ctrl-row" style="margin-top:8px;">
+              <label style="width:100%;">Escala $A$ <span class="val" id="val-A-isoq2" style="float:right;"></span>
+                <input type="range" id="in-A-isoq2" min="0.2" max="4" step="0.01" value="1">
+              </label>
+            </div>
+            <div class="ctrl-row" id="param-alpha-isoq2">
+              <label style="width:100%;"><span id="label-alpha-text-isoq2">Elasticidad $\alpha$ (capital)</span> <span class="val" id="val-alpha-isoq2" style="float:right;"></span>
+                <input type="range" id="in-alpha-isoq2" min="0.05" max="1.2" step="0.01" value="0.5">
+              </label>
+            </div>
+            <div class="ctrl-row" id="param-beta-isoq2">
+              <label style="width:100%;"><span id="label-beta-text-isoq2">Elasticidad $\beta$ (trabajo)</span> <span class="val" id="val-beta-isoq2" style="float:right;"></span>
+                <input type="range" id="in-beta-isoq2" min="0.05" max="1.2" step="0.01" value="0.5">
+              </label>
+            </div>
+            <div class="ctrl-row" id="param-ces-rho-isoq2">
+              <label style="width:100%;">Parámetro $\rho$ (CES) <span class="val" id="val-ces-rho-isoq2" style="float:right;"></span>
+                <input type="range" id="in-ces-rho-isoq2" min="-5" max="0.95" step="0.05" value="0.5">
+              </label>
+            </div>
+          </div>
+          <div class="ctrl-group">
+            <div class="g-title">Modo de visualización</div>
+            <div class="mode-switch">
+              <button type="button" id="mode1-btn" class="active" data-mode="1">1 · Q en el rayo</button>
+              <button type="button" id="mode2-btn" data-mode="2">2 · Isocuantas fijas</button>
+            </div>
+            <p style="font-size:0.74rem;color:var(--text-muted);margin:8px 0 0;line-height:1.4;">
+              <strong>Modo 1:</strong> $(K,L)$ de referencia fijos sobre el rayo; se lee cómo cambia $Q$ al variar $A$.<br>
+              <strong>Modo 2:</strong> tres niveles $Q$ fijos; se lee cómo cambia $(K,L)$ necesario sobre el rayo al variar $A$.
+            </p>
+          </div>
+          <div class="ctrl-group">
+            <div class="g-title">Razón factorial del rayo</div>
+            <div class="ctrl-row">
+              <label style="width:100%;">$K/L$ <span class="val" id="val-ray" style="float:right;"></span>
+                <input type="range" id="in-ray" min="0.2" max="5" step="0.05" value="1">
+              </label>
+            </div>
+          </div>
+          <div class="ctrl-group" id="mode1-ref-group">
+            <div class="g-title">Punto de referencia (Modo 1)</div>
+            <div class="ctrl-row">
+              <label style="width:100%;">$L$ de referencia <span class="val" id="val-lref" style="float:right;"></span>
+                <input type="range" id="in-lref" min="0.5" max="9" step="0.1" value="4">
+              </label>
+            </div>
+          </div>
+          <div class="ctrl-group num-panel" id="isoq-readout"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PANEL 3: Corto plazo -->
+    <section class="panel" id="panel-sr">
+      <h2>Función de producción de corto plazo: $Q(\bar K, L)$, producto marginal y producto medio del trabajo</h2>
+      <p class="desc" id="sr-desc">Con el capital fijado en $\bar K$, se representa $Q(\bar K,L)$ junto con $PMg_L=\partial Q/\partial L$ y $PMe_L=Q/L$ en un subpanel inferior. Fije distintos valores de $\bar K$ para superponer varias curvas y observar cómo se desplaza la función de corto plazo.</p>
+      <div class="panel-body">
+        <div>
+          <div class="canvas-wrap" style="margin-bottom:10px;">
+            <canvas id="cv-sr-total" width="900" height="280"></canvas>
+          </div>
+          <div class="canvas-wrap">
+            <canvas id="cv-sr-margavg" width="900" height="230"></canvas>
+          </div>
+          <div class="stage-legend" id="sr-stage-legend" style="display:none;"></div>
+          <p style="font-size:0.74rem;color:var(--text-muted);margin-top:6px;line-height:1.4;" id="sr-note"></p>
+        </div>
+        <div class="side-controls">
+          <div class="ctrl-group">
+            <div class="g-title">Capital fijo</div>
+            <div class="ctrl-row">
+              <label style="width:100%;">$\bar K$ <span class="val" id="val-kbar" style="float:right;"></span>
+                <input type="range" id="in-kbar" min="0.5" max="10" step="0.1" value="4">
+              </label>
+            </div>
+            <div class="ctrl-row">
+              <button type="button" id="fix-kbar-btn" style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--panel-border);background:var(--accent-1);color:#fff;cursor:pointer;font-family:inherit;font-size:0.78rem;font-weight:600;">Fijar curva actual ($\bar K$)</button>
+            </div>
+            <div class="ctrl-row">
+              <button type="button" id="clear-kbar-btn" style="width:100%;padding:6px;border-radius:6px;border:1px solid var(--panel-border);background:var(--bg);color:var(--text-main);cursor:pointer;font-family:inherit;font-size:0.76rem;">Borrar curvas fijadas</button>
+            </div>
+            <div id="fixed-kbar-list" style="font-size:0.76rem;color:var(--text-muted);margin-top:6px;"></div>
+          </div>
+          <div class="ctrl-group">
+            <div class="g-title">Trabajo evaluado</div>
+            <div class="ctrl-row">
+              <label style="width:100%;">$L$ <span class="val" id="val-lsr" style="float:right;"></span>
+                <input type="range" id="in-lsr" min="0.05" max="3" step="0.02" value="1.5">
+              </label>
+            </div>
+          </div>
+          <div class="ctrl-group num-panel" id="sr-readout"></div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <footer class="credits">
+    Recurso didáctico autocontenido (HTML + Canvas 2D nativo, sin dependencias de renderizado externas). Compatible con incrustación en iframe dentro de Moodle. Requiere JavaScript habilitado.
+  </footer>
+</div>
+
+<script>
+/* ============================================================
+   ESTADO GLOBAL Y TEMA
+   ============================================================ */
+const state = {
+  A: 1,
+  alpha: 0.5,
+  beta: 0.5,
+  form: 'cobb-douglas',
+  cesRho: 0.5
+};
+
+const THEME_LIGHT = {
+  bg: '#fdfcfa', grid: '#e4e1d8', axis: '#b8b3a5',
+  text: '#262420', textMuted: '#6b665c',
+  surfaceLo: [235, 245, 240], surfaceHi: [180, 90, 60],
+  accent1: '#1f6f78', accent2: '#b5652f', accent3: '#6a5a9c', accent4: '#8a9a3f',
+  danger: '#a13d3d',
+  haloFill: 'rgba(253,252,250,0.88)', haloFillDark: 'rgba(38,36,32,0.85)'
+};
+const THEME_DARK = {
+  bg: '#1e1c18', grid: '#322f28', axis: '#524f44',
+  text: '#ece8de', textMuted: '#a8a294',
+  surfaceLo: [30, 60, 55], surfaceHi: [217, 122, 79],
+  accent1: '#4fb2bd', accent2: '#e08a4f', accent3: '#9b8ad1', accent4: '#b6c96a',
+  danger: '#d97a7a',
+  haloFill: 'rgba(30,28,24,0.88)', haloFillDark: 'rgba(236,232,222,0.85)'
+};
+function getTheme() {
+  return document.documentElement.getAttribute('data-theme') === 'dark' ? THEME_DARK : THEME_LIGHT;
+}
+function drawLabelWithHalo(ctx, text, x, y, opts) {
+  opts = opts || {};
+  const th = getTheme();
+  ctx.save();
+  ctx.font = opts.font || '12px -apple-system, sans-serif';
+  ctx.textAlign = opts.align || 'left';
+  ctx.textBaseline = opts.baseline || 'alphabetic';
+  const metrics = ctx.measureText(text);
+  const pad = 3;
+  const w = metrics.width + pad * 2;
+  const h = (opts.fontSize || 13) + pad * 1.6;
+  let bx = x, by = y - h + pad;
+  if (opts.align === 'center') bx = x - w / 2;
+  else if (opts.align === 'right') bx = x - w + pad;
+  ctx.fillStyle = th.haloFill;
+  ctx.fillRect(bx - pad, by - pad * 0.3, w, h);
+  ctx.fillStyle = opts.color || th.text;
+  ctx.fillText(text, x, y);
+  ctx.restore();
+}
+function initTheme() {
+  let saved = null;
+  try { saved = localStorage.getItem('prod3d-theme'); } catch (e) {}
+  if (!saved) {
+    saved = (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light';
+  }
+  document.documentElement.setAttribute('data-theme', saved);
+  updateThemeButton();
+}
+function updateThemeButton() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  document.getElementById('theme-toggle').textContent = isDark ? 'Tema claro' : 'Tema oscuro';
+}
+document.getElementById('theme-toggle').addEventListener('click', () => {
+  const cur = document.documentElement.getAttribute('data-theme');
+  const next = cur === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', next);
+  try { localStorage.setItem('prod3d-theme', next); } catch (e) {}
+  updateThemeButton();
+  redrawAll();
+});
+initTheme();
+
+/* ============================================================
+   FUNCIÓN DE PRODUCCIÓN — despachador multi-forma funcional
+   ============================================================ */
+const FUNCTIONAL_FORMS = {
+  'cobb-douglas': { label: 'Cobb-Douglas', usesAlphaBeta: true, usesCES: false },
+  'leontief':     { label: 'Complementarios perfectos (Leontief)', usesAlphaBeta: true, usesCES: false },
+  'perfect-subs': { label: 'Sustitutos perfectos', usesAlphaBeta: true, usesCES: false },
+  'ces':          { label: 'CES', usesAlphaBeta: true, usesCES: true }
+};
+
+function Q(K, L) {
+  if (K < 0 || L < 0) return 0;
+  switch (state.form) {
+    case 'leontief':
+      // Q = A * min(alpha*K, beta*L) — alpha, beta actúan como coeficientes técnicos (proporción fija)
+      return state.A * Math.min(state.alpha * K, state.beta * L);
+    case 'perfect-subs':
+      // Q = A * (alpha*K + beta*L) — sustitución perfecta, TMST constante
+      return state.A * (state.alpha * K + state.beta * L);
+    case 'ces': {
+      // Q = A * (delta*K^rho + (1-delta)*L^rho)^(nu/rho)
+      // delta = state.alpha ∈ (0,1): participación distributiva de K
+      // nu = state.beta > 0: grado de homogeneidad global (nu=1 → CRS; nu<1 decrecientes; nu>1 crecientes)
+      if (K <= 0 || L <= 0) return 0;
+      const rho = state.cesRho;
+      const delta = state.alpha;
+      const nu = state.beta;
+      let base;
+      if (Math.abs(rho) < 1e-6) {
+        // límite rho->0: Cobb-Douglas con elasticidades delta y (1-delta), elevado a nu
+        base = Math.pow(K, delta) * Math.pow(L, 1 - delta);
+        return state.A * Math.pow(base, nu);
+      }
+      const inner = delta * Math.pow(K, rho) + (1 - delta) * Math.pow(L, rho);
+      if (inner <= 0) return 0;
+      return state.A * Math.pow(inner, nu / rho);
+    }
+    case 'cobb-douglas':
+    default:
+      if (K <= 0 || L <= 0) return 0;
+      return state.A * Math.pow(K, state.alpha) * Math.pow(L, state.beta);
+  }
+}
+
+// Producto marginal del trabajo, con K fijo en Kbar. Se usa derivada analítica por forma
+// (con manejo de puntos no diferenciables en Leontief y linealidad exacta en sustitutos perfectos).
+function PMgL_at(Kbar, L) {
+  const h = 1e-5;
+  switch (state.form) {
+    case 'perfect-subs':
+      return state.A * state.beta; // constante: dQ/dL = A*beta
+    case 'leontief': {
+      // no diferenciable en el vértice; PMg = 0 si la restricción activa es K (tramo horizontal),
+      // en caso contrario coincide con el coeficiente técnico de L (tramo de 45°)
+      const kSide = state.alpha * Kbar, lSide = state.beta * L;
+      return lSide < kSide ? state.A * state.beta : 0;
+    }
+    case 'ces': {
+      // derivada numérica centrada — robusta ante la forma cerrada más compleja de CES con nu≠1
+      return (Q(Kbar, L + h) - Q(Kbar, L - h)) / (2 * h);
+    }
+    case 'cobb-douglas':
+    default:
+      if (L <= 0) return 0;
+      return state.A * Math.pow(Kbar, state.alpha) * state.beta * Math.pow(L, state.beta - 1);
+  }
+}
+function PMeL_at(Kbar, L) {
+  if (L <= 0) return 0;
+  return Q(Kbar, L) / L;
+}
+
+// Puntos de la isocuanta Q(K,L)=qLevel dentro del dominio [0,kMaxDomain]x[0,kMaxDomain], para
+// cualquier forma funcional. Se usa tanto en el panel de isocuantas como en la proyección de
+// isocuantas sobre la base del panel 3D — antes cada panel tenía su propia lógica y el panel 3D
+// aplicaba incorrectamente la fórmula cerrada de Cobb-Douglas a todas las formas.
+function isoqPoints(qLevel, kMaxDomain) {
+  const pts = [];
+  if (state.form === 'perfect-subs') {
+    // A*(alpha*K + beta*L) = qLevel  =>  recta entre (K en L=0) y (L en K=0)
+    const Kat0 = qLevel / (state.A * state.alpha);
+    const Lmax = qLevel / (state.A * state.beta);
+    pts.push({ K: Kat0, L: 0 });
+    pts.push({ K: 0, L: Lmax });
+    return pts;
+  }
+  if (state.form === 'leontief') {
+    // A*min(alpha*K, beta*L) = qLevel  => vértice en K=qLevel/(A*alpha), L=qLevel/(A*beta)
+    const Kv = qLevel / (state.A * state.alpha);
+    const Lv = qLevel / (state.A * state.beta);
+    pts.push({ K: Kv, L: kMaxDomain * 1.4 });
+    pts.push({ K: Kv, L: Lv });
+    pts.push({ K: kMaxDomain * 1.4, L: Lv });
+    return pts;
+  }
+  // Cobb-Douglas y CES: barremos L numéricamente y resolvemos K por bisección (robusto para ambas formas)
+  for (let j = 0; j <= 150; j++) {
+    const L = 0.03 + (j / 150) * (kMaxDomain - 0.03);
+    let lo = 0, hi = kMaxDomain * 1.6;
+    if (Q(hi, L) < qLevel) continue; // nivel no alcanzable en el dominio para este L
+    for (let iter = 0; iter < 40; iter++) {
+      const mid = (lo + hi) / 2;
+      if (Q(mid, L) < qLevel) lo = mid; else hi = mid;
+    }
+    const K = (lo + hi) / 2;
+    if (isFinite(K) && K >= 0 && K <= kMaxDomain * 1.4) pts.push({ K, L });
+  }
+  return pts;
+}
+
+function rtsLabel() {
+  // Para formas con alpha+beta explícito, se conserva el criterio de homogeneidad estándar.
+  // Leontief y sustitutos perfectos con A*f(alpha,beta) lineal en (K,L) escalado son CRS por construcción
+  // salvo que se interprete alpha,beta como coeficientes técnicos (no exponentes) — en ese caso son
+  // siempre homogéneas de grado 1 en (K,L), y el badge lo refleja explícitamente.
+  if (state.form === 'leontief' || state.form === 'perfect-subs') {
+    return { text: 'Rendimientos constantes a escala (por construcción)', color: 'var(--accent-1)' };
+  }
+  if (state.form === 'ces') {
+    // Homogeneidad de grado nu = state.beta, verificable vía Q(tK,tL) = t^nu Q(K,L)
+    const nu = state.beta;
+    if (Math.abs(nu - 1) < 0.005) return { text: 'Rendimientos constantes a escala ($\\nu=1$)', color: 'var(--accent-1)' };
+    if (nu > 1) return { text: 'Rendimientos crecientes a escala', color: 'var(--accent-4)' };
+    return { text: 'Rendimientos decrecientes a escala', color: 'var(--danger)' };
+  }
+  const s = state.alpha + state.beta;
+  if (Math.abs(s - 1) < 0.005) return { text: 'Rendimientos constantes a escala', color: 'var(--accent-1)' };
+  if (s > 1) return { text: 'Rendimientos crecientes a escala', color: 'var(--accent-4)' };
+  return { text: 'Rendimientos decrecientes a escala', color: 'var(--danger)' };
+}
+
+// Rangos de los sliders alpha/beta según la forma funcional activa. Se reasignan dinámicamente
+// para que alpha represente siempre una cantidad con dominio coherente (elasticidad, coeficiente
+// técnico, ponderador o participación distributiva delta∈(0,1)), y beta lo propio (incluyendo
+// el grado de homogeneidad nu en CES, que admite valores >1 para simular rendimientos crecientes).
+const SLIDER_RANGES = {
+  'cobb-douglas': { alpha: { min: 0.05, max: 1.2, step: 0.01 }, beta: { min: 0.05, max: 1.2, step: 0.01 } },
+  'leontief':     { alpha: { min: 0.05, max: 1.2, step: 0.01 }, beta: { min: 0.05, max: 1.2, step: 0.01 } },
+  'perfect-subs': { alpha: { min: 0.05, max: 1.2, step: 0.01 }, beta: { min: 0.05, max: 1.2, step: 0.01 } },
+  'ces':          { alpha: { min: 0.05, max: 0.95, step: 0.01 }, beta: { min: 0.4, max: 1.6, step: 0.01 } }
+};
+
+// IDs de los controles duplicados (arriba y en el panel de isocuantas) que deben mantenerse
+// sincronizados en ambas direcciones. El sufijo "-isoq2" identifica el juego duplicado.
+const SYNCED_SLIDER_IDS = {
+  A: ['in-A', 'in-A-isoq2'],
+  alpha: ['in-alpha', 'in-alpha-isoq2'],
+  beta: ['in-beta', 'in-beta-isoq2'],
+  cesRho: ['in-ces-rho', 'in-ces-rho-isoq2']
+};
+
+function applySliderRange(inputIds, range, currentValue) {
+  const clamped = Math.min(Math.max(currentValue, range.min), range.max);
+  inputIds.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.min = range.min; el.max = range.max; el.step = range.step;
+    el.value = clamped;
+  });
+  return clamped;
+}
+
+function updateGlobalParamDisplay() {
+  const form = FUNCTIONAL_FORMS[state.form];
+  const ranges = SLIDER_RANGES[state.form];
+  state.alpha = applySliderRange(SYNCED_SLIDER_IDS.alpha, ranges.alpha, state.alpha);
+  state.beta = applySliderRange(SYNCED_SLIDER_IDS.beta, ranges.beta, state.beta);
+  applySliderRange(SYNCED_SLIDER_IDS.A, { min: 0.2, max: 4, step: 0.01 }, state.A);
+  applySliderRange(SYNCED_SLIDER_IDS.cesRho, { min: -5, max: 0.95, step: 0.05 }, state.cesRho);
+
+  ['val-A', 'val-A-isoq2'].forEach(id => document.getElementById(id).textContent = state.A.toFixed(2));
+  ['val-alpha', 'val-alpha-isoq2'].forEach(id => document.getElementById(id).textContent = state.alpha.toFixed(2));
+  ['val-beta', 'val-beta-isoq2'].forEach(id => document.getElementById(id).textContent = state.beta.toFixed(2));
+  ['val-ces-rho', 'val-ces-rho-isoq2'].forEach(id => document.getElementById(id).textContent = state.cesRho.toFixed(2));
+  const sigma = Math.abs(1 - state.cesRho) > 1e-6 ? 1 / (1 - state.cesRho) : Infinity;
+  document.getElementById('ces-sigma-detail').innerHTML = isFinite(sigma)
+    ? `$\\sigma = 1/(1-\\rho) = ${sigma.toFixed(2)}$`
+    : `$\\sigma \\to \\infty$ (sustitutos perfectos)`;
+
+  // Sincronizar el selector de forma funcional duplicado (estado "active" de los botones)
+  document.querySelectorAll('#functional-form-switch button').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('data-form') === state.form);
+  });
+  document.querySelectorAll('#functional-form-switch-isoq2 button').forEach(b => {
+    b.classList.toggle('active', b.getAttribute('data-form') === state.form);
+  });
+
+  // Etiquetas dinámicas de alpha/beta según forma (se actualiza solo el texto descriptivo,
+  // preservando los <span id="val-alpha"/"val-beta"> únicos del DOM)
+  const labelAlphaText = document.getElementById('label-alpha-text');
+  const labelBetaText = document.getElementById('label-beta-text');
+  const labelAlphaTextIsoq2 = document.getElementById('label-alpha-text-isoq2');
+  const labelBetaTextIsoq2 = document.getElementById('label-beta-text-isoq2');
+  let alphaLabel, betaLabel;
+  if (state.form === 'leontief') {
+    alphaLabel = 'Coeficiente técnico K'; betaLabel = 'Coeficiente técnico L';
+  } else if (state.form === 'perfect-subs') {
+    alphaLabel = 'Ponderador K'; betaLabel = 'Ponderador L';
+  } else if (state.form === 'ces') {
+    alphaLabel = 'Participación $\\delta$ (K)'; betaLabel = 'Homogeneidad $\\nu$ (escala)';
+  } else {
+    alphaLabel = 'Elasticidad $\\alpha$ (capital)'; betaLabel = 'Elasticidad $\\beta$ (trabajo)';
+  }
+  [labelAlphaText, labelAlphaTextIsoq2].forEach(el => el.innerHTML = alphaLabel);
+  [labelBetaText, labelBetaTextIsoq2].forEach(el => el.innerHTML = betaLabel);
+
+  // Mostrar/ocultar bloques de parámetros según la forma (ambos juegos de controles)
+  ['param-alpha', 'param-alpha-isoq2'].forEach(id => document.getElementById(id).style.display = form.usesAlphaBeta ? '' : 'none');
+  ['param-beta', 'param-beta-isoq2'].forEach(id => document.getElementById(id).style.display = form.usesAlphaBeta ? '' : 'none');
+  ['param-ces-rho', 'param-ces-rho-isoq2'].forEach(id => document.getElementById(id).style.display = form.usesCES ? '' : 'none');
+
+  const rts = rtsLabel();
+  const badge = document.getElementById('rts-badge');
+  badge.textContent = rts.text;
+  badge.style.background = rts.color;
+  badge.style.color = '#fff';
+  if (state.form === 'cobb-douglas') {
+    document.getElementById('rts-detail').innerHTML = `$\\alpha+\\beta = ${(state.alpha + state.beta).toFixed(2)}$`;
+    document.getElementById('rts-detail').style.display = '';
+  } else if (state.form === 'ces') {
+    document.getElementById('rts-detail').innerHTML = `$\\nu = ${state.beta.toFixed(2)}$ (grado de homogeneidad de $Q$)`;
+    document.getElementById('rts-detail').style.display = '';
+  } else {
+    document.getElementById('rts-detail').style.display = 'none';
+  }
+  if (window.MathJax && window.MathJax.typesetPromise) {
+    MathJax.typesetPromise([
+      document.getElementById('rts-detail'),
+      document.getElementById('ces-sigma-detail'),
+      labelAlphaText, labelBetaText, labelAlphaTextIsoq2, labelBetaTextIsoq2
+    ]).catch(() => {});
+  }
+
+  const formulaNote = document.getElementById('form-formula-note');
+  const formulas = {
+    'cobb-douglas': '$Q = A\\,K^{\\alpha}L^{\\beta}$',
+    'leontief': '$Q = A\\,\\min(\\alpha K,\\ \\beta L)$',
+    'perfect-subs': '$Q = A(\\alpha K + \\beta L)$',
+    'ces': '$Q = A\\left(\\delta K^{\\rho} + (1-\\delta)L^{\\rho}\\right)^{\\nu/\\rho}$, con $\\delta=\\alpha\\in(0,1)$ y $\\nu=\\beta$ el grado de homogeneidad'
+  };
+  const formulasShort = {
+    'cobb-douglas': '$Q = A\\,K^{\\alpha}L^{\\beta}$',
+    'leontief': '$Q = A\\,\\min(\\alpha K,\\ \\beta L)$',
+    'perfect-subs': '$Q = A(\\alpha K + \\beta L)$',
+    'ces': '$Q = A\\left(\\delta K^{\\rho} + (1-\\delta)L^{\\rho}\\right)^{\\nu/\\rho}$'
+  };
+  formulaNote.innerHTML = formulas[state.form];
+  const panel3dFormula = document.getElementById('panel3d-formula');
+  panel3dFormula.innerHTML = formulasShort[state.form];
+  if (window.MathJax && window.MathJax.typesetPromise) {
+    MathJax.typesetPromise([formulaNote, panel3dFormula]).catch(() => {});
+  }
+}
+
+['A', 'alpha', 'beta'].forEach(key => {
+  SYNCED_SLIDER_IDS[key].forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', (e) => {
+      state[key] = parseFloat(e.target.value);
+      updateGlobalParamDisplay();
+      redrawAll();
+    });
+  });
+});
+SYNCED_SLIDER_IDS.cesRho.forEach(id => {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('input', (e) => {
+    state.cesRho = parseFloat(e.target.value);
+    updateGlobalParamDisplay();
+    redrawAll();
+  });
+});
+
+document.querySelectorAll('#functional-form-switch button, #functional-form-switch-isoq2 button').forEach(btn => {
+  btn.addEventListener('click', () => {
+    state.form = btn.getAttribute('data-form');
+    updateGlobalParamDisplay(); // sincroniza el estado "active" de ambos selectores
+    redrawAll();
+  });
+});
+
+function redrawAll() {
+  if (window.draw3D) draw3D();
+  if (window.drawIsoq) drawIsoq();
+  if (window.drawSR) drawSR();
+}
+
+updateGlobalParamDisplay();
+
+/* ============================================================
+   PANEL 1 — SUPERFICIE 3D (proyección isométrica manual)
+   ============================================================ */
+(function () {
+  const canvas = document.getElementById('cv-3d');
+  const ctx = canvas.getContext('2d');
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+
+  const cam = { rot: 35, tilt: 32, zoom: 1 };
+  const DOMAIN = { K: 14, L: 14 }; // dominio ampliado, igual al usado por isocuantas de Leontief/sustitutos perfectos
+  const GRID_N = 22; // resolución de la malla
+
+  function resizeCanvasToDisplaySize() {
+    const rect = canvas.getBoundingClientRect();
+    const w = Math.max(300, rect.width);
+    const h = w * (560 / 900);
+    canvas.width = Math.round(w * DPR);
+    canvas.height = Math.round(h * DPR);
+    canvas.style.height = h + 'px';
+  }
+
+  function project(K, L, Qv, cx, cy, scale) {
+    // Rotación alrededor del eje vertical (ángulo cam.rot), luego inclinación (cam.tilt)
+    const rot = cam.rot * Math.PI / 180;
+    const tilt = cam.tilt * Math.PI / 180;
+    // Coordenadas centradas
+    const x = K - DOMAIN.K / 2;
+    const y = L - DOMAIN.L / 2;
+    const z = Qv;
+    // Rotación en plano XY
+    const xr = x * Math.cos(rot) - y * Math.sin(rot);
+    const yr = x * Math.sin(rot) + y * Math.cos(rot);
+    // Proyección isométrica con inclinación variable
+    const px = xr;
+    const py = -yr * Math.sin(tilt) - z * Math.cos(tilt);
+    return {
+      x: cx + px * scale * cam.zoom,
+      y: cy + py * scale * cam.zoom
+    };
+  }
+
+  function computeQMaxOnDomain() {
+    let qmax = 0;
+    for (let i = 0; i <= GRID_N; i++) {
+      for (let j = 0; j <= GRID_N; j++) {
+        const K = (i / GRID_N) * DOMAIN.K;
+        const L = (j / GRID_N) * DOMAIN.L;
+        const v = Q(K, L);
+        if (v > qmax) qmax = v;
+      }
+    }
+    return qmax || 1;
+  }
+
+  function colorForHeight(t, th) {
+    // t en [0,1]; interpola entre color bajo y alto del tema
+    const lo = th.surfaceLo, hi = th.surfaceHi;
+    const r = Math.round(lo[0] + (hi[0] - lo[0]) * t);
+    const g = Math.round(lo[1] + (hi[1] - lo[1]) * t);
+    const b = Math.round(lo[2] + (hi[2] - lo[2]) * t);
+    return `rgb(${r},${g},${b})`;
+  }
+
+  window.draw3D = function draw3D() {
+    resizeCanvasToDisplaySize();
+    const W = canvas.width, H = canvas.height;
+    const th = getTheme();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = th.bg;
+    ctx.fillRect(0, 0, W, H);
+
+    const cx = W / 2, cy = H * 0.56;
+    // Mismo factor de escala relativo que la versión original (scale = min(W,H)/13 con dominio 10),
+    // reescalado proporcionalmente al nuevo dominio ampliado para conservar el mismo encuadre visual.
+    const scale = Math.min(W, H) / (13 * DOMAIN.K / 10);
+    const qmax = computeQMaxOnDomain();
+
+    // Altura de referencia vertical: normalizamos Q para que la escala z sea comparable a K,L
+    const zScale = DOMAIN.K / (qmax || 1) * 0.85;
+
+    const proj = (K, L) => {
+      const Qv = Q(K, L) * zScale;
+      return project(K, L, Qv, cx, cy, scale);
+    };
+
+    // Alcance real de los ejes: coincide con DOMAIN salvo que las isocuantas dibujadas se
+    // extiendan más allá dentro del propio dominio de graficado (caso de Leontief/sustitutos
+    // perfectos, cuyo vértice o recta pueden caer fuera de [0,DOMAIN] y se recortan al dibujar).
+    // Se excluyen colas asintóticas de Cobb-Douglas/CES cerca de L≈0, que matemáticamente
+    // requieren K muy grande pero no son la parte visualmente relevante de la isocuanta.
+    let axisExtentK = DOMAIN.K, axisExtentL = DOMAIN.L;
+    if (document.getElementById('show-isolines3d').checked && (state.form === 'leontief' || state.form === 'perfect-subs')) {
+      const levelsForExtent = [qmax * 0.2, qmax * 0.4, qmax * 0.6, qmax * 0.8];
+      levelsForExtent.forEach(qLevel => {
+        isoqPoints(qLevel, DOMAIN.K).forEach(pt => {
+          if (pt.K <= DOMAIN.K * 1.4 && pt.K > axisExtentK) axisExtentK = pt.K;
+          if (pt.L <= DOMAIN.L * 1.4 && pt.L > axisExtentL) axisExtentL = pt.L;
+        });
+      });
+    }
+
+    // --- Grilla base y ejes ---
+    if (document.getElementById('show-axes3d').checked) {
+      ctx.strokeStyle = th.grid;
+      ctx.lineWidth = 1;
+      const baseSteps = 10;
+      for (let i = 0; i <= baseSteps; i++) {
+        const t = i / baseSteps;
+        let p1 = project(t * axisExtentK, 0, 0, cx, cy, scale);
+        let p2 = project(t * axisExtentK, axisExtentL, 0, cx, cy, scale);
+        ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+        p1 = project(0, t * axisExtentL, 0, cx, cy, scale);
+        p2 = project(axisExtentK, t * axisExtentL, 0, cx, cy, scale);
+        ctx.beginPath(); ctx.moveTo(p1.x, p1.y); ctx.lineTo(p2.x, p2.y); ctx.stroke();
+      }
+      // Ejes principales resaltados
+      ctx.strokeStyle = th.axis;
+      ctx.lineWidth = 1.6;
+      const axK0 = project(0, 0, 0, cx, cy, scale), axK1 = project(axisExtentK, 0, 0, cx, cy, scale);
+      const axL0 = project(0, 0, 0, cx, cy, scale), axL1 = project(0, axisExtentL, 0, cx, cy, scale);
+      const axQ0 = project(0, 0, 0, cx, cy, scale), axQ1 = project(0, 0, DOMAIN.K * 0.85, cx, cy, scale);
+      ctx.beginPath(); ctx.moveTo(axK0.x, axK0.y); ctx.lineTo(axK1.x, axK1.y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(axL0.x, axL0.y); ctx.lineTo(axL1.x, axL1.y); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(axQ0.x, axQ0.y); ctx.lineTo(axQ1.x, axQ1.y); ctx.stroke();
+
+      drawLabelWithHalo(ctx, 'K', axK1.x + 6, axK1.y + 4, { font: `600 ${13 * DPR}px serif`, color: th.accent1 });
+      drawLabelWithHalo(ctx, 'L', axL1.x + 6, axL1.y + 4, { font: `600 ${13 * DPR}px serif`, color: th.accent2 });
+      drawLabelWithHalo(ctx, 'Q', axQ1.x, axQ1.y - 8, { font: `600 ${13 * DPR}px serif`, color: th.text, align: 'center' });
+    }
+
+    // --- Malla de la superficie con painter's algorithm ---
+    const polys = [];
+    for (let i = 0; i < GRID_N; i++) {
+      for (let j = 0; j < GRID_N; j++) {
+        const K0 = (i / GRID_N) * DOMAIN.K, K1 = ((i + 1) / GRID_N) * DOMAIN.K;
+        const L0 = (j / GRID_N) * DOMAIN.L, L1 = ((j + 1) / GRID_N) * DOMAIN.L;
+        const q00 = Q(K0, L0), q10 = Q(K1, L0), q11 = Q(K1, L1), q01 = Q(K0, L1);
+        const p00 = proj(K0, L0), p10 = proj(K1, L0), p11 = proj(K1, L1), p01 = proj(K0, L1);
+        const avgQ = (q00 + q10 + q11 + q01) / 4;
+        // profundidad: usamos coordenada "y de cámara" promedio antes de proyectar (aprox. con K+L rotado)
+        const depth = (K0 + K1 + L0 + L1) / 4 - avgQ * zScale * 0.001;
+        polys.push({ pts: [p00, p10, p11, p01], t: qmax > 0 ? avgQ / qmax : 0, depth: depth, rot: cam.rot, K0, L0 });
+      }
+    }
+    // Orden por profundidad de cámara real: proyectamos la normal de vista
+    const rotRad = cam.rot * Math.PI / 180, tiltRad = cam.tilt * Math.PI / 180;
+    polys.forEach(p => {
+      const x = p.K0 - DOMAIN.K / 2, y = p.L0 - DOMAIN.L / 2;
+      const yr = x * Math.sin(rotRad) + y * Math.cos(rotRad);
+      p.camDepth = yr * Math.cos(tiltRad); // mayor = más cerca de cámara si tilt hace ese eje "hacia afuera"
+    });
+    polys.sort((a, b) => a.camDepth - b.camDepth);
+
+    polys.forEach(poly => {
+      ctx.beginPath();
+      ctx.moveTo(poly.pts[0].x, poly.pts[0].y);
+      for (let k = 1; k < poly.pts.length; k++) ctx.lineTo(poly.pts[k].x, poly.pts[k].y);
+      ctx.closePath();
+      ctx.fillStyle = colorForHeight(poly.t, th);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+      ctx.lineWidth = 0.5;
+      ctx.stroke();
+    });
+
+    // --- Isocuantas proyectadas en la base ---
+    if (document.getElementById('show-isolines3d').checked) {
+      const levels = [qmax * 0.2, qmax * 0.4, qmax * 0.6, qmax * 0.8];
+      ctx.strokeStyle = th.accent3;
+      ctx.lineWidth = 1.3;
+      ctx.globalAlpha = 0.75;
+      levels.forEach(qLevel => {
+        const pts = isoqPoints(qLevel, DOMAIN.K);
+        ctx.beginPath();
+        let started = false;
+        pts.forEach(pt => {
+          // Se recorta el trazo al alcance visible de los ejes (axisExtentK/L) para no dibujar
+          // colas asintóticas (relevante en Cobb-Douglas/CES cerca de L≈0 o K≈0), mientras que
+          // en Leontief/sustitutos perfectos el vértice o la recta completa sí se conservan,
+          // porque axisExtentK/L ya fue ampliado exactamente hasta donde llega esa geometría.
+          if (pt.K > axisExtentK || pt.L > axisExtentL) { started = false; return; }
+          const p = project(pt.K, pt.L, 0, cx, cy, scale);
+          if (!started) { ctx.moveTo(p.x, p.y); started = true; }
+          else ctx.lineTo(p.x, p.y);
+        });
+        ctx.stroke();
+      });
+      ctx.globalAlpha = 1;
+    }
+
+    // Panel numérico lateral
+    document.getElementById('k3d-range').textContent = `0 – ${DOMAIN.K}`;
+    document.getElementById('l3d-range').textContent = `0 – ${DOMAIN.L}`;
+    document.getElementById('q3d-max').textContent = qmax.toFixed(2);
+  };
+
+  // --- Interacción: arrastre para rotar/inclinar ---
+  let dragging = false, lastX = 0, lastY = 0;
+  function pointerDown(x, y) { dragging = true; lastX = x; lastY = y; canvas.classList.add('dragging'); }
+  function pointerMove(x, y) {
+    if (!dragging) return;
+    const dx = x - lastX, dy = y - lastY;
+    cam.rot = ((cam.rot + dx * 0.35) % 360 + 360) % 360;
+    cam.tilt = Math.max(10, Math.min(85, cam.tilt - dy * 0.28));
+    lastX = x; lastY = y;
+    document.getElementById('rot3d').value = cam.rot;
+    document.getElementById('tilt3d').value = cam.tilt;
+    draw3D();
+  }
+  function pointerUp() { dragging = false; canvas.classList.remove('dragging'); }
+
+  canvas.addEventListener('mousedown', e => pointerDown(e.clientX, e.clientY));
+  window.addEventListener('mousemove', e => pointerMove(e.clientX, e.clientY));
+  window.addEventListener('mouseup', pointerUp);
+  canvas.addEventListener('touchstart', e => {
+    if (e.touches.length === 1) { pointerDown(e.touches[0].clientX, e.touches[0].clientY); }
+  }, { passive: true });
+  canvas.addEventListener('touchmove', e => {
+    if (e.touches.length === 1) { pointerMove(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }
+    else if (e.touches.length === 2) {
+      const d = Math.hypot(e.touches[0].clientX - e.touches[1].clientX, e.touches[0].clientY - e.touches[1].clientY);
+      if (window._lastPinchDist) {
+        const delta = (d - window._lastPinchDist) * 0.004;
+        cam.zoom = Math.max(0.5, Math.min(2.6, cam.zoom + delta));
+        document.getElementById('zoom3d').value = cam.zoom.toFixed(2);
+        draw3D();
+      }
+      window._lastPinchDist = d;
+      e.preventDefault();
+    }
+  }, { passive: false });
+  canvas.addEventListener('touchend', () => { pointerUp(); window._lastPinchDist = null; });
+
+  canvas.addEventListener('wheel', e => {
+    e.preventDefault();
+    cam.zoom = Math.max(0.5, Math.min(2.6, cam.zoom - e.deltaY * 0.0016));
+    document.getElementById('zoom3d').value = cam.zoom.toFixed(2);
+    draw3D();
+  }, { passive: false });
+
+  document.getElementById('rot3d').addEventListener('input', e => { cam.rot = parseFloat(e.target.value); draw3D(); });
+  document.getElementById('tilt3d').addEventListener('input', e => { cam.tilt = parseFloat(e.target.value); draw3D(); });
+  document.getElementById('zoom3d').addEventListener('input', e => { cam.zoom = parseFloat(e.target.value); draw3D(); });
+  document.getElementById('reset3d').addEventListener('click', () => {
+    cam.rot = 35; cam.tilt = 32; cam.zoom = 1;
+    document.getElementById('rot3d').value = 35;
+    document.getElementById('tilt3d').value = 32;
+    document.getElementById('zoom3d').value = 1;
+    draw3D();
+  });
+  document.getElementById('show-isolines3d').addEventListener('change', draw3D);
+  document.getElementById('show-axes3d').addEventListener('change', draw3D);
+  window.addEventListener('resize', () => draw3D());
+
+  draw3D();
+})();
+
+/* ============================================================
+   PANEL 2 — ISOCUANTAS SOBRE RAYO K/L CONSTANTE
+   ============================================================ */
+(function () {
+  const canvas = document.getElementById('cv-isoq');
+  const ctx = canvas.getContext('2d');
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+  const DOMAIN = { K: 10, L: 10 };
+  const FIXED_Q_LEVELS = [0.5, 2, 8]; // niveles fijos para Modo 2
+
+  const isoqState = { mode: 1, ray: 1, Lref: 4 };
+
+  function resize() {
+    const rect = canvas.getBoundingClientRect();
+    const w = Math.max(300, rect.width);
+    const h = w * (520 / 900);
+    canvas.width = Math.round(w * DPR);
+    canvas.height = Math.round(h * DPR);
+    canvas.style.height = h + 'px';
+  }
+
+  // márgenes y transform lineal simple (no isométrico: plano K,L puro)
+  function makeTransform(W, H, kMax, lMax) {
+    const margin = { l: 60 * DPR, r: 26 * DPR, t: 20 * DPR, b: 46 * DPR };
+    const plotW = W - margin.l - margin.r;
+    const plotH = H - margin.t - margin.b;
+    const sx = plotW / kMax, sy = plotH / lMax;
+    return {
+      toPx: (K, L) => ({ x: margin.l + K * sx, y: H - margin.b - L * sy }),
+      margin, plotW, plotH, sx, sy
+    };
+  }
+
+  // Resuelve el punto (K,L) sobre el rayo K=ray*L tal que Q(K,L)=qLevel, para cualquier forma funcional.
+  function solveOnRay(qLevel, ray) {
+    if (state.form === 'perfect-subs') {
+      const L = qLevel / (state.A * (state.alpha * ray + state.beta));
+      return isFinite(L) && L > 0 ? { K: ray * L, L } : null;
+    }
+    if (state.form === 'leontief') {
+      // Q(ray*L, L) = A*min(alpha*ray*L, beta*L) = A*L*min(alpha*ray, beta)
+      const factor = state.A * Math.min(state.alpha * ray, state.beta);
+      const L = qLevel / factor;
+      return isFinite(L) && L > 0 ? { K: ray * L, L } : null;
+    }
+    if (state.form === 'cobb-douglas') {
+      const s = state.alpha + state.beta;
+      const denom = state.A * Math.pow(ray, state.alpha);
+      if (denom <= 0 || s <= 0) return null;
+      const L = Math.pow(qLevel / denom, 1 / s);
+      return isFinite(L) && L > 0 ? { K: ray * L, L } : null;
+    }
+    // CES: sin forma cerrada simple homogénea directa a mano — bisección sobre L en el rayo
+    let lo = 1e-6, hi = 200;
+    if (Q(ray * hi, hi) < qLevel) return null;
+    for (let iter = 0; iter < 60; iter++) {
+      const mid = (lo + hi) / 2;
+      if (Q(ray * mid, mid) < qLevel) lo = mid; else hi = mid;
+    }
+    const L = (lo + hi) / 2;
+    return { K: ray * L, L };
+  }
+
+  // Dibuja líneas de proyección punteadas desde un punto (K,L) hacia ambos ejes, con etiquetas
+  // de K, L sobre el eje correspondiente y el valor de Q junto al punto.
+  function projectPointToAxes(ctx, T, K, L, qLevel, color, th, DPR) {
+    const p = T.toPx(K, L);
+    const pAxisL = T.toPx(K, 0);   // proyección sobre eje L (horizontal)
+    const pAxisK = T.toPx(0, L);   // proyección sobre eje K (vertical)
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.globalAlpha = 0.55;
+    ctx.setLineDash([3, 3]);
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(pAxisL.x, pAxisL.y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(pAxisK.x, pAxisK.y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
+    drawLabelWithHalo(ctx, K.toFixed(2), pAxisL.x, pAxisL.y + 16 * DPR, {
+      font: `${11 * DPR}px -apple-system, sans-serif`, align: 'center', color: color
+    });
+    drawLabelWithHalo(ctx, L.toFixed(2), pAxisK.x - 8 * DPR, pAxisK.y + 4 * DPR, {
+      font: `${11 * DPR}px -apple-system, sans-serif`, align: 'right', color: color
+    });
+    ctx.fillStyle = color;
+    ctx.beginPath(); ctx.arc(p.x, p.y, 4.5 * DPR, 0, Math.PI * 2); ctx.fill();
+    drawLabelWithHalo(ctx, `Q=${qLevel.toFixed(2)}`, p.x + 8 * DPR, p.y - 8 * DPR, {
+      font: `${12 * DPR}px -apple-system, sans-serif`, color: color
+    });
+  }
+
+  window.drawIsoq = function drawIsoq() {
+    resize();
+    const W = canvas.width, H = canvas.height;
+    const th = getTheme();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = th.bg;
+    ctx.fillRect(0, 0, W, H);
+
+    const T = makeTransform(W, H, DOMAIN.K, DOMAIN.L);
+
+    // Grilla
+    ctx.strokeStyle = th.grid;
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 10; i++) {
+      const K = (i / 10) * DOMAIN.K;
+      const p0 = T.toPx(K, 0), p1 = T.toPx(K, DOMAIN.L);
+      ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+      const L = (i / 10) * DOMAIN.L;
+      const q0 = T.toPx(0, L), q1 = T.toPx(DOMAIN.K, L);
+      ctx.beginPath(); ctx.moveTo(q0.x, q0.y); ctx.lineTo(q1.x, q1.y); ctx.stroke();
+    }
+    // Ejes
+    ctx.strokeStyle = th.axis;
+    ctx.lineWidth = 1.6;
+    const o = T.toPx(0, 0), xEnd = T.toPx(DOMAIN.K, 0), yEnd = T.toPx(0, DOMAIN.L);
+    ctx.beginPath(); ctx.moveTo(o.x, o.y); ctx.lineTo(xEnd.x, xEnd.y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(o.x, o.y); ctx.lineTo(yEnd.x, yEnd.y); ctx.stroke();
+    ctx.font = `${12 * DPR}px -apple-system, sans-serif`;
+    ctx.fillStyle = th.textMuted;
+    ctx.textAlign = 'center';
+    ctx.fillText('L (trabajo)', (o.x + xEnd.x) / 2, H - 10 * DPR);
+    ctx.save();
+    ctx.translate(20 * DPR, (o.y + yEnd.y) / 2);
+    ctx.rotate(-Math.PI / 2);
+    ctx.fillText('K (capital)', 0, 0);
+    ctx.restore();
+
+    // Rayo K/L constante
+    const ray = isoqState.ray;
+    ctx.strokeStyle = th.textMuted;
+    ctx.setLineDash([5, 4]);
+    ctx.lineWidth = 1.3;
+    const rayEndL = Math.min(DOMAIN.L, DOMAIN.K / ray);
+    const p0 = T.toPx(0, 0), p1 = T.toPx(ray * rayEndL, rayEndL);
+    ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+    ctx.setLineDash([]);
+    drawLabelWithHalo(ctx, `rayo K/L = ${ray.toFixed(2)}`, p1.x - 8, p1.y - 8, {
+      font: `${12 * DPR}px -apple-system, sans-serif`, align: 'right', color: th.textMuted
+    });
+
+    const readoutRows = [];
+
+    if (isoqState.mode === 1) {
+      // MODO 1: (K,L) de referencia fijos sobre el rayo; dibujamos 3 isocuantas de contexto
+      // más la isocuanta que pasa exactamente por el punto de referencia actual.
+      const Lref = Math.min(isoqState.Lref, DOMAIN.L);
+      const Kref = ray * Lref;
+      const qAtRef = Q(Kref, Lref);
+
+      // Isocuantas de contexto (fracciones del nivel de referencia) para dar sentido de escala
+      const contextLevels = [qAtRef * 0.5, qAtRef, qAtRef * 1.5].filter(v => v > 0);
+      const colors = [th.accent4, th.accent1, th.accent3];
+      contextLevels.forEach((qLevel, idx) => {
+        const pts = isoqPoints(qLevel, DOMAIN.K);
+        ctx.strokeStyle = colors[idx % colors.length];
+        ctx.lineWidth = idx === 1 ? 2.2 : 1.4;
+        ctx.globalAlpha = idx === 1 ? 1 : 0.65;
+        ctx.beginPath();
+        pts.forEach((pt, k) => {
+          const px = T.toPx(pt.K, pt.L);
+          if (k === 0) ctx.moveTo(px.x, px.y); else ctx.lineTo(px.x, px.y);
+        });
+        ctx.stroke();
+      });
+      ctx.globalAlpha = 1;
+
+      // Punto de referencia sobre el rayo, con proyección a ambos ejes y etiqueta de Q
+      projectPointToAxes(ctx, T, Kref, Lref, qAtRef, th.accent2, th, DPR);
+
+      readoutRows.push(['Punto de referencia', `K=${Kref.toFixed(2)}, L=${Lref.toFixed(2)}`]);
+      readoutRows.push(['Q en el punto (con A actual)', qAtRef.toFixed(3), true]);
+      readoutRows.push(['Isocuanta inferior (0.5·Q)', contextLevels[0] ? contextLevels[0].toFixed(3) : '–']);
+      readoutRows.push(['Isocuanta superior (1.5·Q)', contextLevels[2] ? contextLevels[2].toFixed(3) : '–']);
+
+      // Sensibilidad de Q ante el parámetro de rendimientos a escala vigente, evaluada en el
+      // MISMO punto (Kref,Lref) del rayo: se perturba solo ese parámetro (alpha+beta en
+      // Cobb-Douglas, nu en CES) manteniendo todo lo demás fijo, para leer directamente cómo
+      // se desplazaría Q en ese punto si los rendimientos a escala cambiaran.
+      const rtsDelta = 0.15;
+      if (state.form === 'cobb-douglas') {
+        const s0 = state.alpha + state.beta;
+        const savedAlpha = state.alpha, savedBeta = state.beta;
+        // Se escala alpha y beta proporcionalmente para modificar alpha+beta sin alterar
+        // la razón alpha/beta (que gobierna la intensidad relativa de factores, no la escala).
+        const scaleUp = (s0 + rtsDelta) / s0, scaleDown = Math.max((s0 - rtsDelta) / s0, 0.01);
+        state.alpha = savedAlpha * scaleUp; state.beta = savedBeta * scaleUp;
+        const qUp = Q(Kref, Lref);
+        state.alpha = savedAlpha * scaleDown; state.beta = savedBeta * scaleDown;
+        const qDown = Q(Kref, Lref);
+        state.alpha = savedAlpha; state.beta = savedBeta;
+        readoutRows.push([`Q si $\\alpha+\\beta=${(s0+rtsDelta).toFixed(2)}$`, qUp.toFixed(3)]);
+        readoutRows.push([`Q actual ($\\alpha+\\beta=${s0.toFixed(2)}$)`, qAtRef.toFixed(3), true]);
+        readoutRows.push([`Q si $\\alpha+\\beta=${(s0-rtsDelta).toFixed(2)}$`, qDown.toFixed(3)]);
+      } else if (state.form === 'ces') {
+        const nu0 = state.beta;
+        const savedBeta = state.beta;
+        state.beta = nu0 + rtsDelta;
+        const qUp = Q(Kref, Lref);
+        state.beta = Math.max(nu0 - rtsDelta, 0.05);
+        const qDown = Q(Kref, Lref);
+        state.beta = savedBeta;
+        readoutRows.push([`Q si $\\nu=${(nu0+rtsDelta).toFixed(2)}$`, qUp.toFixed(3)]);
+        readoutRows.push([`Q actual ($\\nu=${nu0.toFixed(2)}$)`, qAtRef.toFixed(3), true]);
+        readoutRows.push([`Q si $\\nu=${Math.max(nu0-rtsDelta,0.05).toFixed(2)}$`, qDown.toFixed(3)]);
+      } else {
+        readoutRows.push(['Rendimientos a escala', 'CRS fijo por construcción (sin parámetro variable)']);
+      }
+
+    } else {
+      // MODO 2: tres niveles Q fijos; localizamos el punto sobre el rayo donde Q(K,L)=nivel,
+      // válido para cualquier forma funcional mediante solveOnRay (fórmula cerrada o bisección).
+      const colors = [th.accent4, th.accent1, th.accent3];
+      FIXED_Q_LEVELS.forEach((qLevel, idx) => {
+        const pts = isoqPoints(qLevel, DOMAIN.K);
+        ctx.strokeStyle = colors[idx];
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        pts.forEach((pt, k) => {
+          const px = T.toPx(pt.K, pt.L);
+          if (k === 0) ctx.moveTo(px.x, px.y); else ctx.lineTo(px.x, px.y);
+        });
+        ctx.stroke();
+
+        const sol = solveOnRay(qLevel, ray);
+        if (sol && isFinite(sol.K) && isFinite(sol.L) && sol.K <= DOMAIN.K * 1.3 && sol.L <= DOMAIN.L * 1.3) {
+          projectPointToAxes(ctx, T, Math.min(sol.K, DOMAIN.K), Math.min(sol.L, DOMAIN.L), qLevel, colors[idx], th, DPR);
+          readoutRows.push([`Q = ${qLevel} → (K,L) sobre rayo`, `(${sol.K.toFixed(2)}, ${sol.L.toFixed(2)})`]);
+        } else {
+          readoutRows.push([`Q = ${qLevel} → (K,L) sobre rayo`, 'fuera de rango']);
+        }
+      });
+    }
+
+    // Leyenda de niveles dibujados
+    ctx.font = `${11.5 * DPR}px -apple-system, sans-serif`;
+
+    // Panel numérico lateral
+    const box = document.getElementById('isoq-readout');
+    let html = '<div class="g-title">Lectura numérica</div><table>';
+    readoutRows.forEach(r => {
+      html += `<tr${r[2] ? ' class="hl"' : ''}><td class="k">${r[0]}</td><td class="v">${r[1]}</td></tr>`;
+    });
+    html += '</table>';
+    box.innerHTML = html;
+    if (window.MathJax && window.MathJax.typesetPromise) {
+      MathJax.typesetPromise([box]).catch(() => {});
+    }
+  };
+
+  document.getElementById('mode1-btn').addEventListener('click', () => {
+    isoqState.mode = 1;
+    document.getElementById('mode1-btn').classList.add('active');
+    document.getElementById('mode2-btn').classList.remove('active');
+    document.getElementById('mode1-ref-group').style.display = '';
+    drawIsoq();
+  });
+  document.getElementById('mode2-btn').addEventListener('click', () => {
+    isoqState.mode = 2;
+    document.getElementById('mode2-btn').classList.add('active');
+    document.getElementById('mode1-btn').classList.remove('active');
+    document.getElementById('mode1-ref-group').style.display = 'none';
+    drawIsoq();
+  });
+  document.getElementById('in-ray').addEventListener('input', e => {
+    isoqState.ray = parseFloat(e.target.value);
+    document.getElementById('val-ray').textContent = isoqState.ray.toFixed(2);
+    drawIsoq();
+  });
+  document.getElementById('in-lref').addEventListener('input', e => {
+    isoqState.Lref = parseFloat(e.target.value);
+    document.getElementById('val-lref').textContent = isoqState.Lref.toFixed(1);
+    drawIsoq();
+  });
+  document.getElementById('val-ray').textContent = isoqState.ray.toFixed(2);
+  document.getElementById('val-lref').textContent = isoqState.Lref.toFixed(1);
+
+  window.addEventListener('resize', () => drawIsoq());
+  drawIsoq();
+})();
+
+/* ============================================================
+   PANEL 3 — CORTO PLAZO: Q(K̄,L), PMgL, PMeL
+   ============================================================ */
+(function () {
+  const cvTotal = document.getElementById('cv-sr-total');
+  const ctxT = cvTotal.getContext('2d');
+  const cvMA = document.getElementById('cv-sr-margavg');
+  const ctxMA = cvMA.getContext('2d');
+  const DPR = Math.min(window.devicePixelRatio || 1, 2);
+  const L_MAX = 3; // dominio recortado para observar con detalle la forma de Q(K̄,L), PMgL y PMeL a bajos niveles de L
+
+  const srState = { Kbar: 4, Lsr: 1.5, fixed: [] }; // fixed: [{Kbar, color}]
+  const SNAPSHOT_COLORS = ['#8a9a3f', '#6a5a9c', '#b5652f', '#4f8ab5', '#a15d9c'];
+
+  function resize(canvas, aspectH) {
+    const rect = canvas.getBoundingClientRect();
+    const w = Math.max(300, rect.width);
+    const h = w * aspectH;
+    canvas.width = Math.round(w * DPR);
+    canvas.height = Math.round(h * DPR);
+    canvas.style.height = h + 'px';
+    return { w: canvas.width, h: canvas.height };
+  }
+
+  function QsL(Kbar, L) { return Q(Kbar, L); }
+  function PMgL(Kbar, L) { return PMgL_at(Kbar, L); }
+  function PMeL(Kbar, L) { return PMeL_at(Kbar, L); }
+
+  function makeTransform(W, H, xMax, yMax, yMin) {
+    yMin = yMin || 0;
+    const margin = { l: 58 * DPR, r: 20 * DPR, t: 16 * DPR, b: 34 * DPR };
+    const plotW = W - margin.l - margin.r;
+    const plotH = H - margin.t - margin.b;
+    const sx = plotW / xMax, sy = plotH / (yMax - yMin);
+    return {
+      toPx: (x, y) => ({ x: margin.l + x * sx, y: H - margin.b - (y - yMin) * sy }),
+      margin, plotW, plotH, sx, sy, yMin, yMax
+    };
+  }
+
+  window.drawSR = function drawSR() {
+    const th = getTheme();
+    const dimsT = resize(cvTotal, 280 / 900);
+    const dimsMA = resize(cvMA, 230 / 900);
+
+    // --- Rango dinámico de Q para escalar bien el eje ---
+    let qMaxDomain = 0;
+    for (let i = 0; i <= 200; i++) {
+      const L = (i / 200) * L_MAX;
+      qMaxDomain = Math.max(qMaxDomain, QsL(srState.Kbar, L));
+    }
+    srState.fixed.forEach(f => {
+      for (let i = 0; i <= 200; i++) {
+        const L = (i / 200) * L_MAX;
+        qMaxDomain = Math.max(qMaxDomain, QsL(f.Kbar, L));
+      }
+    });
+    qMaxDomain = qMaxDomain > 0 ? qMaxDomain * 1.12 : 1;
+
+    /* ---------- SUBPANEL SUPERIOR: Q(K̄,L) ---------- */
+    ctxT.setTransform(1, 0, 0, 1, 0, 0);
+    ctxT.clearRect(0, 0, dimsT.w, dimsT.h);
+    ctxT.fillStyle = th.bg;
+    ctxT.fillRect(0, 0, dimsT.w, dimsT.h);
+    const T1 = makeTransform(dimsT.w, dimsT.h, L_MAX, qMaxDomain);
+
+    // Sombras de etapas (con beta<1, PMe siempre decreciente => todo el dominio visible cae en Etapa II económicamente relevante;
+    // se muestra igualmente la partición conceptual usando el punto de referencia Lsr solo como marcador, no como frontera universal)
+    ctxT.strokeStyle = th.grid;
+    ctxT.lineWidth = 1;
+    for (let i = 0; i <= 10; i++) {
+      const L = (i / 10) * L_MAX;
+      const p0 = T1.toPx(L, T1.yMin), p1 = T1.toPx(L, qMaxDomain);
+      ctxT.beginPath(); ctxT.moveTo(p0.x, p0.y); ctxT.lineTo(p1.x, p1.y); ctxT.stroke();
+    }
+    for (let i = 0; i <= 5; i++) {
+      const q = T1.yMin + (i / 5) * (qMaxDomain - T1.yMin);
+      const p0 = T1.toPx(0, q), p1 = T1.toPx(L_MAX, q);
+      ctxT.beginPath(); ctxT.moveTo(p0.x, p0.y); ctxT.lineTo(p1.x, p1.y); ctxT.stroke();
+      ctxT.fillStyle = th.textMuted;
+      ctxT.font = `${10.5 * DPR}px -apple-system, sans-serif`;
+      ctxT.textAlign = 'right';
+      ctxT.fillText(q.toFixed(1), p0.x - 5 * DPR, p0.y + 3 * DPR);
+    }
+    // Ejes
+    ctxT.strokeStyle = th.axis;
+    ctxT.lineWidth = 1.6;
+    const o1 = T1.toPx(0, T1.yMin), xEnd1 = T1.toPx(L_MAX, T1.yMin), yEnd1 = T1.toPx(0, qMaxDomain);
+    ctxT.beginPath(); ctxT.moveTo(o1.x, o1.y); ctxT.lineTo(xEnd1.x, xEnd1.y); ctxT.stroke();
+    ctxT.beginPath(); ctxT.moveTo(o1.x, o1.y); ctxT.lineTo(yEnd1.x, yEnd1.y); ctxT.stroke();
+
+    // Curvas fijadas (snapshots) — dibujadas primero, semitransparentes, debajo de la actual
+    srState.fixed.forEach(f => {
+      ctxT.strokeStyle = f.color;
+      ctxT.lineWidth = 1.8;
+      ctxT.globalAlpha = 0.65;
+      ctxT.setLineDash([]);
+      ctxT.beginPath();
+      for (let i = 0; i <= 300; i++) {
+        const L = (i / 300) * L_MAX;
+        const q = QsL(f.Kbar, L);
+        const p = T1.toPx(L, q);
+        if (i === 0) ctxT.moveTo(p.x, p.y); else ctxT.lineTo(p.x, p.y);
+      }
+      ctxT.stroke();
+      ctxT.globalAlpha = 1;
+      // Etiqueta al final de la curva
+      const Lend = L_MAX * 0.94;
+      const pEnd = T1.toPx(Lend, QsL(f.Kbar, Lend));
+      drawLabelWithHalo(ctxT, `K̄=${f.Kbar.toFixed(1)}`, pEnd.x, pEnd.y - 6 * DPR, {
+        font: `${11 * DPR}px -apple-system, sans-serif`, align: 'right', color: f.color
+      });
+    });
+
+    // Curva Q(K̄,L) actual
+    ctxT.strokeStyle = th.accent1;
+    ctxT.lineWidth = 2.2;
+    ctxT.beginPath();
+    for (let i = 0; i <= 300; i++) {
+      const L = (i / 300) * L_MAX;
+      const q = QsL(srState.Kbar, L);
+      const p = T1.toPx(L, q);
+      if (i === 0) ctxT.moveTo(p.x, p.y); else ctxT.lineTo(p.x, p.y);
+    }
+    ctxT.stroke();
+
+    // Punto evaluado
+    const Lsr = srState.Lsr;
+    const qAtL = QsL(srState.Kbar, Lsr);
+    const pEval = T1.toPx(Lsr, qAtL);
+    ctxT.fillStyle = th.accent2;
+    ctxT.beginPath(); ctxT.arc(pEval.x, pEval.y, 4.5 * DPR, 0, Math.PI * 2); ctxT.fill();
+    ctxT.strokeStyle = th.accent2;
+    ctxT.setLineDash([4, 3]);
+    ctxT.lineWidth = 1;
+    ctxT.beginPath(); ctxT.moveTo(pEval.x, o1.y); ctxT.lineTo(pEval.x, pEval.y); ctxT.stroke();
+    ctxT.setLineDash([]);
+    drawLabelWithHalo(ctxT, `Q(K̄,L)=${qAtL.toFixed(2)}`, pEval.x + 8, pEval.y - 8, {
+      font: `${12 * DPR}px -apple-system, sans-serif`, color: th.accent2
+    });
+
+    ctxT.fillStyle = th.text;
+    ctxT.font = `600 ${13 * DPR}px -apple-system, sans-serif`;
+    ctxT.textAlign = 'left';
+    ctxT.fillText(`Q(K̄=${srState.Kbar.toFixed(1)}, L)`, o1.x + 6 * DPR, T1.margin.t + 12 * DPR);
+
+    /* ---------- SUBPANEL INFERIOR: PMgL y PMeL ---------- */
+    let maMax = 0;
+    for (let i = 1; i <= 300; i++) {
+      const L = (i / 300) * L_MAX;
+      maMax = Math.max(maMax, PMgL(srState.Kbar, L), PMeL(srState.Kbar, L));
+    }
+    srState.fixed.forEach(f => {
+      for (let i = 1; i <= 300; i++) {
+        const L = (i / 300) * L_MAX;
+        maMax = Math.max(maMax, PMgL(f.Kbar, L), PMeL(f.Kbar, L));
+      }
+    });
+    maMax = maMax > 0 ? maMax * 1.15 : 1;
+
+    ctxMA.setTransform(1, 0, 0, 1, 0, 0);
+    ctxMA.clearRect(0, 0, dimsMA.w, dimsMA.h);
+    ctxMA.fillStyle = th.bg;
+    ctxMA.fillRect(0, 0, dimsMA.w, dimsMA.h);
+    const T2 = makeTransform(dimsMA.w, dimsMA.h, L_MAX, maMax);
+
+    // Sombreado de fondo: únicamente interpretable para Cobb-Douglas, donde PMgL=beta·PMeL es
+    // constante en toda la curva. Para las demás formas funcionales no se sombrea (ver nota lateral).
+    if (state.form === 'cobb-douglas') {
+      ctxMA.save();
+      const stage1Color = getComputedStyle(document.documentElement).getPropertyValue('--stage1').trim();
+      const stage2Color = getComputedStyle(document.documentElement).getPropertyValue('--stage2').trim();
+      ctxMA.fillStyle = state.beta > 1.004 ? stage1Color
+                        : (Math.abs(state.beta - 1) < 0.004 ? 'transparent' : stage2Color);
+      if (ctxMA.fillStyle && ctxMA.fillStyle !== 'transparent') {
+        ctxMA.fillRect(T2.margin.l, T2.margin.t, T2.plotW, T2.plotH);
+      }
+      ctxMA.restore();
+    }
+
+    ctxMA.strokeStyle = th.grid;
+    ctxMA.lineWidth = 1;
+    for (let i = 0; i <= 10; i++) {
+      const L = (i / 10) * L_MAX;
+      const p0 = T2.toPx(L, 0), p1 = T2.toPx(L, maMax);
+      ctxMA.beginPath(); ctxMA.moveTo(p0.x, p0.y); ctxMA.lineTo(p1.x, p1.y); ctxMA.stroke();
+    }
+    for (let i = 0; i <= 4; i++) {
+      const y = (i / 4) * maMax;
+      const p0 = T2.toPx(0, y), p1 = T2.toPx(L_MAX, y);
+      ctxMA.beginPath(); ctxMA.moveTo(p0.x, p0.y); ctxMA.lineTo(p1.x, p1.y); ctxMA.stroke();
+      ctxMA.fillStyle = th.textMuted;
+      ctxMA.font = `${10.5 * DPR}px -apple-system, sans-serif`;
+      ctxMA.textAlign = 'right';
+      ctxMA.fillText(y.toFixed(2), p0.x - 5 * DPR, p0.y + 3 * DPR);
+    }
+    // Ejes
+    ctxMA.strokeStyle = th.axis;
+    ctxMA.lineWidth = 1.6;
+    const o2 = T2.toPx(0, 0), xEnd2 = T2.toPx(L_MAX, 0);
+    ctxMA.beginPath(); ctxMA.moveTo(o2.x, o2.y); ctxMA.lineTo(xEnd2.x, xEnd2.y); ctxMA.stroke();
+    ctxMA.beginPath(); ctxMA.moveTo(o2.x, o2.y); ctxMA.lineTo(T2.toPx(0, maMax).x, T2.toPx(0, maMax).y); ctxMA.stroke();
+    ctxMA.fillStyle = th.textMuted;
+    ctxMA.font = `${12 * DPR}px -apple-system, sans-serif`;
+    ctxMA.textAlign = 'center';
+    ctxMA.fillText('L (trabajo)', (o2.x + xEnd2.x) / 2, dimsMA.h - 6 * DPR);
+
+    // Curvas fijadas (snapshots) — PMg y PMe en trazo fino y semitransparente
+    srState.fixed.forEach(f => {
+      ctxMA.globalAlpha = 0.55;
+      ctxMA.strokeStyle = f.color;
+      ctxMA.lineWidth = 1.3;
+      ctxMA.setLineDash([2, 3]);
+      ctxMA.beginPath();
+      for (let i = 1; i <= 300; i++) {
+        const L = (i / 300) * L_MAX;
+        const p = T2.toPx(L, PMgL(f.Kbar, L));
+        if (i === 1) ctxMA.moveTo(p.x, p.y); else ctxMA.lineTo(p.x, p.y);
+      }
+      ctxMA.stroke();
+      ctxMA.setLineDash([]);
+      ctxMA.beginPath();
+      for (let i = 1; i <= 300; i++) {
+        const L = (i / 300) * L_MAX;
+        const p = T2.toPx(L, PMeL(f.Kbar, L));
+        if (i === 1) ctxMA.moveTo(p.x, p.y); else ctxMA.lineTo(p.x, p.y);
+      }
+      ctxMA.stroke();
+      ctxMA.globalAlpha = 1;
+    });
+
+    // PMeL actual
+    ctxMA.strokeStyle = th.accent3;
+    ctxMA.lineWidth = 2;
+    ctxMA.beginPath();
+    for (let i = 1; i <= 300; i++) {
+      const L = (i / 300) * L_MAX;
+      const p = T2.toPx(L, PMeL(srState.Kbar, L));
+      if (i === 1) ctxMA.moveTo(p.x, p.y); else ctxMA.lineTo(p.x, p.y);
+    }
+    ctxMA.stroke();
+    // PMgL actual
+    ctxMA.strokeStyle = th.accent2;
+    ctxMA.lineWidth = 2;
+    ctxMA.beginPath();
+    for (let i = 1; i <= 300; i++) {
+      const L = (i / 300) * L_MAX;
+      const p = T2.toPx(L, PMgL(srState.Kbar, L));
+      if (i === 1) ctxMA.moveTo(p.x, p.y); else ctxMA.lineTo(p.x, p.y);
+    }
+    ctxMA.stroke();
+
+    // Punto evaluado en ambas curvas
+    const pmg = PMgL(srState.Kbar, Lsr), pme = PMeL(srState.Kbar, Lsr);
+    [{ v: pmg, c: th.accent2 }, { v: pme, c: th.accent3 }].forEach(o => {
+      const p = T2.toPx(Lsr, o.v);
+      ctxMA.fillStyle = o.c;
+      ctxMA.beginPath(); ctxMA.arc(p.x, p.y, 4 * DPR, 0, Math.PI * 2); ctxMA.fill();
+    });
+    ctxMA.strokeStyle = th.textFaint || th.textMuted;
+    ctxMA.setLineDash([4, 3]);
+    ctxMA.lineWidth = 1;
+    const pLine = T2.toPx(Lsr, 0);
+    ctxMA.beginPath(); ctxMA.moveTo(pLine.x, o2.y); ctxMA.lineTo(pLine.x, T2.margin.t); ctxMA.stroke();
+    ctxMA.setLineDash([]);
+
+    // Leyenda
+    ctxMA.font = `600 ${12 * DPR}px -apple-system, sans-serif`;
+    ctxMA.textAlign = 'left';
+    ctxMA.fillStyle = th.accent2;
+    ctxMA.fillText('● PMgL', o2.x + 10 * DPR, T2.margin.t + 12 * DPR);
+    ctxMA.fillStyle = th.accent3;
+    ctxMA.fillText('● PMeL', o2.x + 90 * DPR, T2.margin.t + 12 * DPR);
+
+    // Determinar la etapa del punto evaluado, según la forma funcional vigente.
+    let stageLabel, noteHtml;
+    let pmgOverPme = pme > 0 ? pmg / pme : (pmg > 0 ? Infinity : 0);
+    if (state.form === 'cobb-douglas') {
+      if (state.beta > 1.004) stageLabel = 'Etapa I para todo $L&gt;0$ ($PMg_L&gt;PMe_L$; rendimientos crecientes en $L$)';
+      else if (Math.abs(state.beta - 1) < 0.004) stageLabel = 'Frontera Etapa I/II ($PMg_L=PMe_L$; producto por trabajador constante)';
+      else stageLabel = 'Etapa II para todo $L&gt;0$ ($PMg_L&lt;PMe_L$, ambos positivos y decrecientes)';
+      noteHtml = `Propiedad de la forma Cobb-Douglas: $PMg_L = \\beta \\cdot PMe_L$ exactamente para todo $L&gt;0$ (aquí, ${pmgOverPme.toFixed(3)} $\\approx \\beta=${state.beta.toFixed(2)}$). La etapa productiva queda fijada globalmente por $\\beta$ y no varía con $L$; la Etapa III ($PMg_L&lt;0$) es inalcanzable en esta forma funcional pura.`;
+    } else if (state.form === 'leontief') {
+      stageLabel = pmg > 0 ? 'Tramo de complementariedad estricta ($PMg_L&gt;0$)' : 'Tramo saturado: $K$ es el factor limitante ($PMg_L=0$)';
+      noteHtml = `En complementarios perfectos, $PMg_L$ es discontinua: vale $A\\beta$ mientras $L$ sea el factor escaso, y cae a $0$ exactamente cuando $\\beta L$ supera a $\\alpha \\bar K$ (el capital pasa a limitar la producción). No hay Etapa I ni III en el sentido continuo clásico.`;
+    } else if (state.form === 'perfect-subs') {
+      stageLabel = 'Producto marginal constante ($PMg_L=A\\beta$ para todo $L$)';
+      noteHtml = `En sustitutos perfectos, $Q$ es lineal en $L$: $PMg_L=A\\beta$ es constante y $PMe_L=A(\\alpha \\bar K/L + \\beta) \\to A\\beta$ cuando $L\\to\\infty$. No existen las tres etapas clásicas porque no hay rendimientos decrecientes en $L$.`;
+    } else {
+      // CES
+      if (pmg > pme) stageLabel = 'Etapa I ($PMg_L&gt;PMe_L$)';
+      else stageLabel = 'Etapa II ($PMg_L&lt;PMe_L$, ambos positivos)';
+      noteHtml = `En CES, la razón $PMg_L/PMe_L$ no es constante: depende de $L$ a través de $\\rho=${state.cesRho.toFixed(2)}$ ($\\sigma\\approx${(Math.abs(1-state.cesRho)>1e-6 ? 1/(1-state.cesRho) : Infinity).toFixed(2)}$) y del grado de homogeneidad $\\nu=${state.beta.toFixed(2)}$. Con $\\nu&lt;1$ (rendimientos decrecientes a escala), $PMg_L$ decae más rápido que en el caso $\\nu=1$, acentuando la caída del producto marginal para $L$ grande.`;
+    }
+
+    // Panel numérico lateral
+    const box = document.getElementById('sr-readout');
+    let fixedRows = '';
+    srState.fixed.forEach((f, idx) => {
+      fixedRows += `<tr><td class="k" style="color:${f.color};">K̄ fijado ${idx+1}</td><td class="v">${f.Kbar.toFixed(2)}</td></tr>`;
+    });
+    box.innerHTML = `
+      <div class="g-title">Lectura en L = ${Lsr.toFixed(2)}, K̄ = ${srState.Kbar.toFixed(2)}</div>
+      <table>
+        <tr><td class="k">$Q(\\bar K, L)$</td><td class="v">${qAtL.toFixed(3)}</td></tr>
+        <tr class="hl"><td class="k">$PMg_L$</td><td class="v">${pmg.toFixed(3)}</td></tr>
+        <tr><td class="k">$PMe_L$</td><td class="v">${pme.toFixed(3)}</td></tr>
+        <tr><td class="k">$PMg_L / PMe_L$</td><td class="v">${isFinite(pmgOverPme) ? pmgOverPme.toFixed(3) : '∞'}</td></tr>
+        <tr><td class="k">Etapa</td><td class="v" style="font-weight:400;font-size:0.76rem;">${stageLabel}</td></tr>
+        ${fixedRows}
+      </table>
+      <div class="eqbox">${noteHtml}</div>
+    `;
+    document.getElementById('sr-note').innerHTML = noteHtml;
+    if (window.MathJax && window.MathJax.typesetPromise) {
+      MathJax.typesetPromise([box, document.getElementById('sr-note')]).catch(() => {});
+    }
+  };
+
+  document.getElementById('in-kbar').addEventListener('input', e => {
+    srState.Kbar = parseFloat(e.target.value);
+    document.getElementById('val-kbar').textContent = srState.Kbar.toFixed(1);
+    drawSR();
+  });
+  document.getElementById('in-lsr').addEventListener('input', e => {
+    srState.Lsr = parseFloat(e.target.value);
+    document.getElementById('val-lsr').textContent = srState.Lsr.toFixed(2);
+    drawSR();
+  });
+  document.getElementById('val-kbar').textContent = srState.Kbar.toFixed(1);
+  document.getElementById('val-lsr').textContent = srState.Lsr.toFixed(2);
+
+  function renderFixedList() {
+    const el = document.getElementById('fixed-kbar-list');
+    if (srState.fixed.length === 0) { el.textContent = 'Sin curvas fijadas.'; return; }
+    el.innerHTML = srState.fixed.map((f, idx) =>
+      `<div style="display:flex;align-items:center;gap:5px;margin-top:3px;">
+         <span class="legend-dot" style="background:${f.color};"></span>K̄ = ${f.Kbar.toFixed(2)}
+         <button type="button" data-idx="${idx}" class="remove-fixed" style="margin-left:auto;border:none;background:none;color:var(--text-faint);cursor:pointer;font-size:0.9rem;">×</button>
+       </div>`
+    ).join('');
+    el.querySelectorAll('.remove-fixed').forEach(btn => {
+      btn.addEventListener('click', () => {
+        srState.fixed.splice(parseInt(btn.getAttribute('data-idx'), 10), 1);
+        renderFixedList();
+        drawSR();
+      });
+    });
+  }
+  document.getElementById('fix-kbar-btn').addEventListener('click', () => {
+    if (srState.fixed.length >= SNAPSHOT_COLORS.length) {
+      srState.fixed.shift(); // límite razonable de curvas simultáneas para legibilidad
+    }
+    const color = SNAPSHOT_COLORS[srState.fixed.length % SNAPSHOT_COLORS.length];
+    srState.fixed.push({ Kbar: srState.Kbar, color });
+    renderFixedList();
+    drawSR();
+  });
+  document.getElementById('clear-kbar-btn').addEventListener('click', () => {
+    srState.fixed = [];
+    renderFixedList();
+    drawSR();
+  });
+  renderFixedList();
+
+  window.addEventListener('resize', () => drawSR());
+  drawSR();
+})();
+</script>
+</body>
+</html>
