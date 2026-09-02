@@ -4,7 +4,7 @@ Simulador interactivo, en un único archivo HTML autocontenido, para la enseñan
 
 No requiere instalación, compilación ni conexión a un backend: se abre directamente en el navegador o se incrusta como `iframe` en un aula virtual (Moodle u otra plataforma LMS).
 
-`**Demo en vivo**(https://fcontiggiani.github.io/produccion-cp-lp/produccion_cobb_douglas_3d.html)`
+`**Demo en vivo(https://fcontiggiani.github.io/produccion-cp-lp/produccion_cobb_douglas_3d.html)**`
 
 ---
 
