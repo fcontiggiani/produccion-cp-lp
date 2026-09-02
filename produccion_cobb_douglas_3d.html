@@ -229,10 +229,12 @@
 
   .mode-switch {
     display: flex;
+    flex-wrap: wrap;
     gap: 6px;
   }
   .mode-switch button {
-    flex: 1;
+    flex: 1 1 auto;
+    min-width: 90px;
     border: 1px solid var(--panel-border);
     background: var(--bg);
     color: var(--text-muted);
@@ -315,6 +317,7 @@
         <button type="button" data-form="leontief">Complementarios perfectos</button>
         <button type="button" data-form="perfect-subs">Sustitutos perfectos</button>
         <button type="button" data-form="ces">CES</button>
+        <button type="button" data-form="cubic">Cúbica (sigmoidea)</button>
       </div>
       <p id="form-formula-note" style="font-size:0.72rem;color:var(--text-muted);margin:6px 0 0;"></p>
     </div>
@@ -405,6 +408,7 @@
               <button type="button" data-form="leontief">Compl. perfectos</button>
               <button type="button" data-form="perfect-subs">Sust. perfectos</button>
               <button type="button" data-form="ces">CES</button>
+              <button type="button" data-form="cubic">Cúbica</button>
             </div>
             <div class="ctrl-row" style="margin-top:8px;">
               <label style="width:100%;">Escala $A$ <span class="val" id="val-A-isoq2" style="float:right;"></span>
@@ -590,7 +594,8 @@ const FUNCTIONAL_FORMS = {
   'cobb-douglas': { label: 'Cobb-Douglas', usesAlphaBeta: true, usesCES: false },
   'leontief':     { label: 'Complementarios perfectos (Leontief)', usesAlphaBeta: true, usesCES: false },
   'perfect-subs': { label: 'Sustitutos perfectos', usesAlphaBeta: true, usesCES: false },
-  'ces':          { label: 'CES', usesAlphaBeta: true, usesCES: true }
+  'ces':          { label: 'CES', usesAlphaBeta: true, usesCES: true },
+  'cubic':        { label: 'Cúbica (sigmoidea, corto plazo clásico)', usesAlphaBeta: true, usesCES: false }
 };
 
 function Q(K, L) {
@@ -620,6 +625,17 @@ function Q(K, L) {
       if (inner <= 0) return 0;
       return state.A * Math.pow(inner, nu / rho);
     }
+    case 'cubic': {
+      // Q = A * K^alpha * (c*L^2 - L^3), forma clásica de manuales (Pindyck-Rubinfeld, Varian)
+      // para ilustrar las tres etapas de producción con cruces interiores reales.
+      // c = state.beta fija el dominio económicamente válido de L: Q≥0 solo para L∈[0,c].
+      // Para L>c, la expresión se vuelve negativa (no es un resultado económico, es la cúbica
+      // matemática completa), así que se trunca a 0 fuera de ese dominio.
+      if (K <= 0 || L < 0) return 0;
+      const c = state.beta;
+      if (L > c) return 0;
+      return state.A * Math.pow(K, state.alpha) * (c * L * L - L * L * L);
+    }
     case 'cobb-douglas':
     default:
       if (K <= 0 || L <= 0) return 0;
@@ -643,6 +659,13 @@ function PMgL_at(Kbar, L) {
     case 'ces': {
       // derivada numérica centrada — robusta ante la forma cerrada más compleja de CES con nu≠1
       return (Q(Kbar, L + h) - Q(Kbar, L - h)) / (2 * h);
+    }
+    case 'cubic': {
+      // dQ/dL = A*K^alpha*(2cL - 3L^2), válida en L∈[0,c]; fuera de ese dominio Q se trunca a 0
+      // y no tiene sentido reportar un PMg distinto de 0 (no hay producto que derivar).
+      const c = state.beta;
+      if (L < 0 || L > c) return 0;
+      return state.A * Math.pow(Kbar, state.alpha) * (2 * c * L - 3 * L * L);
     }
     case 'cobb-douglas':
     default:
@@ -708,6 +731,13 @@ function rtsLabel() {
     if (nu > 1) return { text: 'Rendimientos crecientes a escala', color: 'var(--accent-4)' };
     return { text: 'Rendimientos decrecientes a escala', color: 'var(--danger)' };
   }
+  if (state.form === 'cubic') {
+    // El término cúbico en L rompe la homogeneidad conjunta en (K,L): escalar ambos factores
+    // por t no produce Q(tK,tL) = t^k Q(K,L) para ningún k fijo (verificable numéricamente).
+    // El concepto relevante aquí no es "rendimientos a escala" sino la ley de rendimientos
+    // marginales decrecientes en L, que esta forma sí ilustra con las tres etapas completas.
+    return { text: 'No homogénea en (K,L): no aplica el concepto de escala', color: 'var(--text-faint)' };
+  }
   const s = state.alpha + state.beta;
   if (Math.abs(s - 1) < 0.005) return { text: 'Rendimientos constantes a escala', color: 'var(--accent-1)' };
   if (s > 1) return { text: 'Rendimientos crecientes a escala', color: 'var(--accent-4)' };
@@ -722,7 +752,8 @@ const SLIDER_RANGES = {
   'cobb-douglas': { alpha: { min: 0.05, max: 1.2, step: 0.01 }, beta: { min: 0.05, max: 1.2, step: 0.01 } },
   'leontief':     { alpha: { min: 0.05, max: 1.2, step: 0.01 }, beta: { min: 0.05, max: 1.2, step: 0.01 } },
   'perfect-subs': { alpha: { min: 0.05, max: 1.2, step: 0.01 }, beta: { min: 0.05, max: 1.2, step: 0.01 } },
-  'ces':          { alpha: { min: 0.05, max: 0.95, step: 0.01 }, beta: { min: 0.4, max: 1.6, step: 0.01 } }
+  'ces':          { alpha: { min: 0.05, max: 0.95, step: 0.01 }, beta: { min: 0.4, max: 1.6, step: 0.01 } },
+  'cubic':        { alpha: { min: 0.05, max: 1.2, step: 0.01 }, beta: { min: 1, max: 4.5, step: 0.05 } }
 };
 
 // IDs de los controles duplicados (arriba y en el panel de isocuantas) que deben mantenerse
@@ -783,6 +814,8 @@ function updateGlobalParamDisplay() {
     alphaLabel = 'Ponderador K'; betaLabel = 'Ponderador L';
   } else if (state.form === 'ces') {
     alphaLabel = 'Participación $\\delta$ (K)'; betaLabel = 'Homogeneidad $\\nu$ (escala)';
+  } else if (state.form === 'cubic') {
+    alphaLabel = 'Elasticidad $\\alpha$ (capital)'; betaLabel = 'Parámetro $c$ (dominio de L)';
   } else {
     alphaLabel = 'Elasticidad $\\alpha$ (capital)'; betaLabel = 'Elasticidad $\\beta$ (trabajo)';
   }
@@ -805,6 +838,9 @@ function updateGlobalParamDisplay() {
   } else if (state.form === 'ces') {
     document.getElementById('rts-detail').innerHTML = `$\\nu = ${state.beta.toFixed(2)}$ (grado de homogeneidad de $Q$)`;
     document.getElementById('rts-detail').style.display = '';
+  } else if (state.form === 'cubic') {
+    document.getElementById('rts-detail').innerHTML = `$L \\in [0,\\ c]=[0,\\ ${state.beta.toFixed(1)}]$; $Q$ máx. en $L=2c/3=${(2*state.beta/3).toFixed(2)}$`;
+    document.getElementById('rts-detail').style.display = '';
   } else {
     document.getElementById('rts-detail').style.display = 'none';
   }
@@ -821,13 +857,15 @@ function updateGlobalParamDisplay() {
     'cobb-douglas': '$Q = A\\,K^{\\alpha}L^{\\beta}$',
     'leontief': '$Q = A\\,\\min(\\alpha K,\\ \\beta L)$',
     'perfect-subs': '$Q = A(\\alpha K + \\beta L)$',
-    'ces': '$Q = A\\left(\\delta K^{\\rho} + (1-\\delta)L^{\\rho}\\right)^{\\nu/\\rho}$, con $\\delta=\\alpha\\in(0,1)$ y $\\nu=\\beta$ el grado de homogeneidad'
+    'ces': '$Q = A\\left(\\delta K^{\\rho} + (1-\\delta)L^{\\rho}\\right)^{\\nu/\\rho}$, con $\\delta=\\alpha\\in(0,1)$ y $\\nu=\\beta$ el grado de homogeneidad',
+    'cubic': '$Q = A\\,K^{\\alpha}(cL^2 - L^3)$, con $c=\\beta$; válida para $L\\in[0,c]$'
   };
   const formulasShort = {
     'cobb-douglas': '$Q = A\\,K^{\\alpha}L^{\\beta}$',
     'leontief': '$Q = A\\,\\min(\\alpha K,\\ \\beta L)$',
     'perfect-subs': '$Q = A(\\alpha K + \\beta L)$',
-    'ces': '$Q = A\\left(\\delta K^{\\rho} + (1-\\delta)L^{\\rho}\\right)^{\\nu/\\rho}$'
+    'ces': '$Q = A\\left(\\delta K^{\\rho} + (1-\\delta)L^{\\rho}\\right)^{\\nu/\\rho}$',
+    'cubic': '$Q = A\\,K^{\\alpha}(cL^2 - L^3)$'
   };
   formulaNote.innerHTML = formulas[state.form];
   const panel3dFormula = document.getElementById('panel3d-formula');
@@ -1184,6 +1222,28 @@ updateGlobalParamDisplay();
       const L = Math.pow(qLevel / denom, 1 / s);
       return isFinite(L) && L > 0 ? { K: ray * L, L } : null;
     }
+    if (state.form === 'cubic') {
+      // Q(ray*L, L) = A*(ray*L)^alpha*(cL^2-L^3) es unimodal en L∈[0,c]: sube desde 0, alcanza
+      // un máximo interior y vuelve a 0 en L=c. Para qLevel por debajo de ese máximo existen dos
+      // soluciones (una en cada tramo); se reporta la del tramo creciente (menor L), que es la
+      // lectura más directa: "L mínimo sobre el rayo para alcanzar este nivel de producto".
+      const c = state.beta;
+      const N = 400;
+      let qMaxOnRay = 0, LatMax = 0;
+      for (let i = 0; i <= N; i++) {
+        const L = (i / N) * c;
+        const q = Q(ray * L, L);
+        if (q > qMaxOnRay) { qMaxOnRay = q; LatMax = L; }
+      }
+      if (qLevel > qMaxOnRay || LatMax <= 0) return null; // nivel inalcanzable en este rayo
+      let lo = 0, hi = LatMax;
+      for (let iter = 0; iter < 60; iter++) {
+        const mid = (lo + hi) / 2;
+        if (Q(ray * mid, mid) < qLevel) lo = mid; else hi = mid;
+      }
+      const L = (lo + hi) / 2;
+      return { K: ray * L, L };
+    }
     // CES: sin forma cerrada simple homogénea directa a mano — bisección sobre L en el rayo
     let lo = 1e-6, hi = 200;
     if (Q(ray * hi, hi) < qLevel) return null;
@@ -1340,6 +1400,8 @@ updateGlobalParamDisplay();
         readoutRows.push([`Q si $\\nu=${(nu0+rtsDelta).toFixed(2)}$`, qUp.toFixed(3)]);
         readoutRows.push([`Q actual ($\\nu=${nu0.toFixed(2)}$)`, qAtRef.toFixed(3), true]);
         readoutRows.push([`Q si $\\nu=${Math.max(nu0-rtsDelta,0.05).toFixed(2)}$`, qDown.toFixed(3)]);
+      } else if (state.form === 'cubic') {
+        readoutRows.push(['Rendimientos a escala', 'No aplica: forma no homogénea en (K,L)']);
       } else {
         readoutRows.push(['Rendimientos a escala', 'CRS fijo por construcción (sin parámetro variable)']);
       }
@@ -1704,6 +1766,13 @@ updateGlobalParamDisplay();
     } else if (state.form === 'perfect-subs') {
       stageLabel = 'Producto marginal constante ($PMg_L=A\\beta$ para todo $L$)';
       noteHtml = `En sustitutos perfectos, $Q$ es lineal en $L$: $PMg_L=A\\beta$ es constante y $PMe_L=A(\\alpha \\bar K/L + \\beta) \\to A\\beta$ cuando $L\\to\\infty$. No existen las tres etapas clásicas porque no hay rendimientos decrecientes en $L$.`;
+    } else if (state.form === 'cubic') {
+      const c = state.beta;
+      const LmaxPMe = c / 2, LmaxQ = 2 * c / 3;
+      if (Lsr < LmaxPMe) stageLabel = `Etapa I ($L&lt;c/2=${LmaxPMe.toFixed(2)}$): $PMe_L$ creciente, $PMg_L&gt;PMe_L$`;
+      else if (Lsr < LmaxQ) stageLabel = `Etapa II ($c/2&lt;L&lt;2c/3$): $PMg_L&lt;PMe_L$, ambos positivos y decrecientes`;
+      else stageLabel = `Etapa III ($L&gt;2c/3=${LmaxQ.toFixed(2)}$): $PMg_L&lt;0$, $Q$ decreciente`;
+      noteHtml = `Forma cúbica clásica de manuales: $PMg_L$ es creciente hasta $L=c/3=${(c/3).toFixed(2)}$ (punto de inflexión de $Q$) y decreciente después. $PMe_L$ se maximiza exactamente en $L=c/2=${LmaxPMe.toFixed(2)}$ (donde $PMg_L=PMe_L$), y $Q$ se maximiza en $L=2c/3=${LmaxQ.toFixed(2)}$ (donde $PMg_L=0$). A diferencia de Cobb-Douglas, aquí las tres etapas coexisten en tramos reales y disjuntos del dominio de $L$.`;
     } else {
       // CES
       if (pmg > pme) stageLabel = 'Etapa I ($PMg_L&gt;PMe_L$)';

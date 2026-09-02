@@ -1,6 +1,6 @@
 # Función de producción: representación en corto y largo plazo
 
-Simulador interactivo, en un único archivo HTML autocontenido, para la enseñanza de la teoría de la producción en cursos de Microeconomía Intermedia de grado avanzado (Economía, Contador Público, Administración y Ciencias Sociales). Permite explorar la función de producción $Q(K,L)$ bajo cuatro formas funcionales estándar, con tres paneles vinculados: la superficie tridimensional, el mapa de isocuantas con análisis de rendimientos a escala, y la función de producción de corto plazo con sus productos marginal y medio del trabajo.
+Simulador interactivo, en un único archivo HTML autocontenido, para la enseñanza de la teoría de la producción en cursos de Microeconomía Intermedia de grado avanzado (Economía, Contador Público, Administración y Ciencias Sociales). Permite explorar la función de producción $Q(K,L)$ bajo cinco formas funcionales estándar, con tres paneles vinculados: la superficie tridimensional, el mapa de isocuantas con análisis de rendimientos a escala, y la función de producción de corto plazo con sus productos marginal y medio del trabajo.
 
 No requiere instalación, compilación ni conexión a un backend: se abre directamente en el navegador o se incrusta como `iframe` en un aula virtual (Moodle u otra plataforma LMS).
 
@@ -14,7 +14,7 @@ No requiere instalación, compilación ni conexión a un backend: se abre direct
 
 ### Formas funcionales disponibles
 
-El simulador permite alternar entre cuatro especificaciones de $Q(K,L)$ mediante un selector global, con parámetros libres compartidos entre los tres paneles:
+El simulador permite alternar entre cinco especificaciones de $Q(K,L)$ mediante un selector global, con parámetros libres compartidos entre los tres paneles:
 
 | Forma funcional | Especificación | Parámetros libres |
 |---|---|---|
@@ -22,8 +22,11 @@ El simulador permite alternar entre cuatro especificaciones de $Q(K,L)$ mediante
 | Complementarios perfectos (Leontief) | $Q = A\,\min(\alpha K,\ \beta L)$ | $A$, $\alpha$, $\beta$ (coeficientes técnicos) |
 | Sustitutos perfectos | $Q = A(\alpha K + \beta L)$ | $A$, $\alpha$, $\beta$ (ponderadores) |
 | CES | $Q = A\left(\delta K^{\rho} + (1-\delta)L^{\rho}\right)^{\nu/\rho}$ | $A$, $\delta$, $\nu$, $\rho$ |
+| Cúbica (sigmoidea, corto plazo clásico) | $Q = A\,K^{\alpha}(cL^2-L^3)$, válida en $L\in[0,c]$ | $A$, $\alpha$, $c$ |
 
-Los controles de $\alpha$ y $\beta$ se reinterpretan dinámicamente según la forma activa (elasticidades en Cobb-Douglas, coeficientes técnicos en Leontief, ponderadores en sustitutos perfectos, o participación distributiva $\delta$ y grado de homogeneidad $\nu$ en CES), con rangos y etiquetas que se ajustan automáticamente al cambiar de forma.
+Los controles de $\alpha$ y $\beta$ se reinterpretan dinámicamente según la forma activa (elasticidades en Cobb-Douglas, coeficientes técnicos en Leontief, ponderadores en sustitutos perfectos, participación distributiva $\delta$ y grado de homogeneidad $\nu$ en CES, o el parámetro $c$ que fija el dominio válido de $L$ en la forma cúbica), con rangos y etiquetas que se ajustan automáticamente al cambiar de forma.
+
+La forma cúbica reproduce la función de corto plazo clásica de los manuales (Pindyck-Rubinfeld, Varian) para ilustrar las **tres etapas de producción con cruces interiores reales**: $PMg_L$ alcanza su máximo en $L=c/3$, $PMe_L$ se maximiza exactamente donde $PMg_L=PMe_L$ (en $L=c/2$), y $Q$ se maximiza donde $PMg_L=0$ (en $L=2c/3$). A diferencia de las demás formas, **no es homogénea en $(K,L)$ conjuntamente**, por lo que el concepto de rendimientos a escala no se le aplica (el simulador lo señala explícitamente donde corresponde).
 
 ### Panel 1 — Superficie de producción en 3D
 
@@ -37,7 +40,7 @@ Malla tridimensional de $Q(K,L)$ renderizada con proyección isométrica manual 
 
 El análisis de rendimientos a escala exige mantener fija la *proporción* de factores $K/L$ y variar su cantidad conjunta; por ello el panel ancla la lectura sobre un **rayo de razón factorial constante**, con dos modos conmutables:
 
-- **Modo 1 — Q en el rayo:** fija un punto $(K,L)$ de referencia sobre el rayo y muestra cómo cambia $Q$ en ese punto al variar la escala $A$ **y** al variar el propio grado de rendimientos a escala ($\alpha+\beta$ en Cobb-Douglas, $\nu$ en CES), perturbando el parámetro en $\pm 0.15$ y leyendo el efecto resultante sobre $Q$. En Leontief y sustitutos perfectos, que son de rendimientos constantes por construcción, se indica que no hay parámetro de escala variable.
+- **Modo 1 — Q en el rayo:** fija un punto $(K,L)$ de referencia sobre el rayo y muestra cómo cambia $Q$ en ese punto al variar la escala $A$ **y** al variar el propio grado de rendimientos a escala ($\alpha+\beta$ en Cobb-Douglas, $\nu$ en CES), perturbando el parámetro en $\pm 0.15$ y leyendo el efecto resultante sobre $Q$. En Leontief y sustitutos perfectos (rendimientos constantes por construcción) y en la forma cúbica (no homogénea en $(K,L)$), se indica que el concepto no aplica.
 - **Modo 2 — Isocuantas fijas:** fija tres niveles de producto ($Q=0.5,\ 2,\ 8$) y muestra cómo se desplaza el punto $(K,L)$ necesario sobre el rayo para alcanzar cada nivel a medida que cambian los parámetros.
 
 En ambos modos, el punto leído se proyecta con líneas punteadas sobre los ejes $K$ y $L$, con el valor de $Q$ etiquetado junto al punto.
@@ -46,9 +49,9 @@ En ambos modos, el punto leído se proyecta con líneas punteadas sobre los ejes
 
 Con el capital fijado en $\bar K$, se representa $Q(\bar K, L)$ en un subpanel superior y, debajo, el producto marginal $PMg_L=\partial Q/\partial L$ y el producto medio $PMe_L=Q/L$ del trabajo.
 
-- El dominio de $L$ está acotado a $[0,3]$ para observar con detalle el comportamiento a bajos niveles de trabajo.
+- El dominio de $L$ está acotado a $[0,3]$ para observar con detalle el comportamiento a bajos niveles de trabajo. En la forma cúbica, el rango del parámetro $c$ se limita a $[1,\,4.5]$ para que las tres etapas de producción queden siempre visibles dentro de ese dominio.
 - Botón **"Fijar curva actual"**: superpone la curva $Q(\bar K,L)$ vigente (semitransparente, con su propio color) para comparar visualmente cómo se desplaza la función de corto plazo al cambiar $\bar K$, con hasta cinco curvas simultáneas y lista lateral editable.
-- La clasificación de etapas de producción (Etapa I/II/III) se recalcula según la forma funcional activa: en Cobb-Douglas, la propiedad $PMg_L=\beta\cdot PMe_L$ hace que la etapa quede fijada globalmente por $\beta$ y no varíe con $L$; en Leontief, el quiebre en $PMg_L$ es real y corresponde al punto donde el capital pasa a ser el factor limitante; en sustitutos perfectos, $PMg_L$ es constante; en CES, la razón $PMg_L/PMe_L$ varía con $L$ de forma no trivial según $\rho$ y $\nu$.
+- La clasificación de etapas de producción (Etapa I/II/III) se recalcula según la forma funcional activa: en Cobb-Douglas, la propiedad $PMg_L=\beta\cdot PMe_L$ hace que la etapa quede fijada globalmente por $\beta$ y no varíe con $L$; en Leontief, el quiebre en $PMg_L$ es real y corresponde al punto donde el capital pasa a ser el factor limitante; en sustitutos perfectos, $PMg_L$ es constante; en CES, la razón $PMg_L/PMe_L$ varía con $L$ de forma no trivial según $\rho$ y $\nu$; en la forma **cúbica**, las tres etapas coexisten en tramos reales y disjuntos de $L$ — con cruces exactos en $L=c/2$ (máximo de $PMe_L$) y $L=2c/3$ (máximo de $Q$, donde $PMg_L=0$).
 
 ### Sincronización de controles
 
@@ -77,40 +80,8 @@ Sugerencias de integración según el momento de la clase:
 - **Introducción a la función de producción:** Panel 1, alternando entre formas funcionales para que el estudiantado visualice cómo cambia la geometría de la superficie (curvatura, aristas, planitud) según la forma elegida.
 - **Rendimientos a escala:** Panel 2 en Modo 1, fijando un punto sobre el rayo y variando $\alpha+\beta$ (o $\nu$ en CES) para leer directamente el efecto sobre $Q$ sin cambiar la intensidad relativa de factores.
 - **Comparación de niveles de producto bajo distintos $A$:** Panel 2 en Modo 2, observando cómo se desplazan hacia el origen las isocuantas de igual nivel cuando aumenta la productividad total de los factores.
-- **Ley de rendimientos marginales decrecientes y etapas de producción:** Panel 3, fijando distintos valores de $\bar K$ para comparar la familia de curvas de corto plazo, y contrastando la ausencia de una Etapa III alcanzable en Cobb-Douglas con el quiebre real que sí aparece en Leontief.
-
----
-
-## Publicación en GitHub Pages
-
-1. Cree un repositorio nuevo (o utilice uno existente) y suba `produccion_cobb_douglas_3d.html` a la raíz de la rama `main` (**Add file → Upload files**).
-2. En **Settings → Pages**, seleccione la rama `main` y la carpeta `/ (root)` como fuente, si GitHub Pages no está ya activado.
-3. El recurso quedará disponible en:
-   ```
-   https://fcontiggiani.github.io/produccion-cp-lp/produccion_cobb_douglas_3d.html
-   ```
-
-## Integración en Moodle
-
-Incruste el recurso mediante un bloque HTML con `iframe`:
-
-```html
-<iframe src="https://fcontiggiani.github.io/produccion-cp-lp/produccion_cobb_douglas_3d.html"
-        width="100%" height="900" style="border:none;"></iframe>
-```
-
-**Nota:** algunas configuraciones institucionales de Moodle eliminan automáticamente las etiquetas `<iframe>` por razones de seguridad. Si esto ocurre, comparta el enlace directo a GitHub Pages como alternativa.
-
----
-
-## Estructura del repositorio
-
-```
-.
-├── produccion_cobb_douglas_3d.html   # Simulador completo (HTML + CSS + JS, un solo archivo)
-├── screenshot.png                     # Captura de pantalla para este README (tema claro)
-└── README.md                          # Este archivo
-```
+- **Ley de rendimientos marginales decrecientes y etapas de producción:** Panel 3 con la forma **cúbica**, para mostrar las tres etapas completas con cruces interiores reales — a diferencia de Cobb-Douglas, donde la Etapa III nunca se alcanza. Complementar fijando distintos valores de $\bar K$ para comparar la familia de curvas de corto plazo.
+- **Formas no homogéneas y límites del análisis de escala:** Panel 2, cambiando a la forma cúbica para mostrar por qué el concepto de rendimientos a escala no es aplicable a toda función de producción, y contrastar con las formas donde sí lo es.
 
 ---
 
