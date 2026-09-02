@@ -87,7 +87,7 @@ Sugerencias de integración según el momento de la clase:
 2. En **Settings → Pages**, seleccione la rama `main` y la carpeta `/ (root)` como fuente, si GitHub Pages no está ya activado.
 3. El recurso quedará disponible en:
    ```
-   https://<usuario>.github.io/<repositorio>/produccion_cobb_douglas_3d.html
+   https://fcontiggiani.github.io/produccion-cp-lp/produccion_cobb_douglas_3d.html
    ```
 
 ## Integración en Moodle
@@ -95,7 +95,7 @@ Sugerencias de integración según el momento de la clase:
 Incruste el recurso mediante un bloque HTML con `iframe`:
 
 ```html
-<iframe src="https://<usuario>.github.io/<repositorio>/produccion_cobb_douglas_3d.html"
+<iframe src="https://fcontiggiani.github.io/produccion-cp-lp/produccion_cobb_douglas_3d.html"
         width="100%" height="900" style="border:none;"></iframe>
 ```
 
