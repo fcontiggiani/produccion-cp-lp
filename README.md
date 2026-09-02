@@ -4,7 +4,9 @@ Simulador interactivo, en un único archivo HTML autocontenido, para la enseñan
 
 No requiere instalación, compilación ni conexión a un backend: se abre directamente en el navegador o se incrusta como `iframe` en un aula virtual (Moodle u otra plataforma LMS).
 
-**Demo en vivo:** `https://<usuario>.github.io/<repositorio>/produccion_cobb_douglas_3d.html`
+**[▶ Abrir el simulador](https://fcontiggiani.github.io/produccion-cp-lp/produccion_cobb_douglas_3d.html)**
+
+![Vista general del simulador con tema claro, mostrando la superficie de producción en 3D, el mapa de isocuantas y la función de corto plazo](screenshot.png)
 
 ---
 
@@ -106,6 +108,7 @@ Incruste el recurso mediante un bloque HTML con `iframe`:
 ```
 .
 ├── produccion_cobb_douglas_3d.html   # Simulador completo (HTML + CSS + JS, un solo archivo)
+├── screenshot.png                     # Captura de pantalla para este README (tema claro)
 └── README.md                          # Este archivo
 ```
 
